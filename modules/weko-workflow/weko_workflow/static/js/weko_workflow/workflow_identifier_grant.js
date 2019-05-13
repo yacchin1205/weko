@@ -50,11 +50,13 @@ require([
             document.location.reload(true);
           }
         } else {
-          alert(data.msg);
+         // alert(data.msg);
+          $("#myModal").text(data.msg).modal('toggle');
         }
       },
       error: function (jqXHE, status) {
-        alert('Server error');
+       // alert('Server error');
+        $("#myModal").text("Server Error").modal('toggle');
         $('#myModal').modal('hide');
       }
     });

@@ -63,10 +63,6 @@
                   </select>
                 </span>
                 <span class="buttons">
-                 <!-- <input type="button" value="⇈" id="moveTop">
-                  <input type="button" value="↑" id="moveUp">
-                  <input type="button" value="↓" id="moveDown">
-                  <input type="button" value="⇊" id="moveBottom">-->
                  <button type="button" id="moveTop" class="btn btn-default icon-button">
                      <i class="fa fa-angle-double-up"></i>
                  </button><br/><br/>
@@ -90,6 +86,7 @@
                   {{_('Save')}}
               </button>
             </div>
+        
             </div>
           </div>
         </div>
@@ -97,4 +94,27 @@
     </div>
   </div>
 </div>
+
+<div id="myModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateHeader" aria-hidden="true">  
+  <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                 <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">{{_('WEKO')}}</h4>
+            </div>
+            <div class="modal-body" style="overflow-x: auto;">
+                 <span class="glyphicon glyphicon-question-sign fa-3x" style="vertical-align: middle; margin: 0 10px"></span>
+                 <p>One fine body&hellip;</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal">{{_('Cancel')}}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {%- endblock body %}
+
+

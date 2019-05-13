@@ -25,6 +25,7 @@ require([
                   document.location.href = data.data.redirect;
               } else {
                   alert(data.msg);
+                  $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {}

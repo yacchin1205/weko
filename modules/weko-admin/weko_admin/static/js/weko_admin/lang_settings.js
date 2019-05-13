@@ -44,6 +44,8 @@ $(document).ready(function () {
     error: function (error) {
       console.log(error);
       alert('Error when get languages');
+        //  $("#myModal").text("Error when get languages").modal("toggle");
+        // return;
     }
   });
 
@@ -133,11 +135,15 @@ $(document).ready(function () {
       contentType: 'application/json',
       data: JSON.stringify(results),
       success: function (data) {
-        alert('Update languages action successfully');
+          alert('Update languages action successfully');
+          // $("#myModal").text('Update languages action successfully').modal("toggle");
+          // return;
       },
       error: function (error) {
         console.log(error);
-        alert('Update languages action erroneously');
+          alert('Update languages action erroneously');
+          // $("#myModal").text('Update languages action erroneously').modal("toggle");
+          // return;
       }
     });
   });

@@ -43,7 +43,8 @@ USA. #}
                     </div>
                     <!--input_type is radio end-->
                     <!--input_type is daterange sta-->
-                    <div ng-if="sub_data.key_value.inputType=='dateRange'" class="col-sm-3">
+                    <div ng-if="sub_data.key_value.inputType=='dateRange'"
+                        class="col-sm-3">
                       <div class="row input-daterange input-group">
                         <input type="text" class="input-sm form-control" name="[[sub_data.key_value.id]]_from" data-provide="datepicker"
                                id="[[sub_data.key_value.id]]_from" placeholder="yyyymmdd" data-date-format="yyyymmdd" ng-model="sub_data.key_value.inputVal_from"/>
@@ -91,9 +92,10 @@ USA. #}
       <br>
         <div class="row">
             <div class="col-sm-1">
-                <button id="detail-search-btn" type="submit" class="btn btn-primary search-button" ng-click="detail_search()">
+                <button id="detail-search-btn" type="submit" class="btn
+                    btn-primary search-button" ng-click="detail_search()">
                        <span class="glyphicon glyphicon-search"></span>
-                            {{_('Search')}}
+                       {{_('Search')}}
                 </button>
             </div>
             <div class="col-sm-1">

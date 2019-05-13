@@ -78,7 +78,8 @@ require([
             }
           },
           error: function(status, error) {
-            alert(error);
+            //alert(error);
+            $("#myModal").text(error).modal('toggle');
           }
         });
       }
@@ -163,7 +164,8 @@ require([
             }
           },
           error: function(status, error) {
-            alert(error);
+           // alert(error);
+            $("#myModal").text(error).modal('toggle');
           }
         });
       }

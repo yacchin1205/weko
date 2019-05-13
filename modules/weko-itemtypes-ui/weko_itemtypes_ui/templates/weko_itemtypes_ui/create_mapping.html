@@ -56,11 +56,6 @@
               {%- endfor -%}
             </select>
           </div>
-         <!-- <a type="button" class="btn btn-info pull-right" href="{{
-              url_for('weko_itemtypes_ui.index') }}" style="width: 80px; height: 40px;font-size: 15px;">
-               <span class="glyphicon glyphicon-chevron-left"></span>
-               {{ _('Back') }}
-         </a>-->
         </div>
       </div>
     </div>
@@ -110,16 +105,14 @@
                   {%- endfor -%}
                 </select>
                 <div class="btn-group pull-right" data-key="{{key}}">
-                 <!-- <input type="button" class="btn btn-info" data-action="add" value="{{_('Add')}}">-->
                  <button class="btn btn-light add-button ten-pixel-right-margin ten-pixel-bottom-margin" data_action="add">
                       <span class="glyphicon glyphicon-plus"></span>
                            {{_('Add')}}
-                  </button>
-                  <!--  <input type="button" class="btn btn-danger" data-action="del" value="{{_('Delete')}}" {%- if keys_count == 1 -%}disabled{%- endif -%}>-->
-                  <button class="btn btn-danger delete-button ten-pixel-bottom-margin" data-action="del" {%- if keys_count == 1 -%}disabled{%- endif -%}>
+                 </button>
+                 <button class="btn btn-danger delete-button ten-pixel-bottom-margin" data-action="del" {%- if keys_count == 1 -%}disabled{%- endif -%}>
                         <span class="glyphicon glyphicon-trash"></span>
                           {{_('Delete')}}
-                  </button>
+                 </button>
                 </div>
               </div>
             </li>
@@ -143,12 +136,10 @@
                   {%- endfor -%}
                 </select>
                 <div class="btn-group pull-right" data-key="{{key}}">
-                  <!--<input type="button" class="btn btn-info" data-action="add" value="{{_('Add')}}">-->
                   <button class="btn btn-light add-button five-pixel-margin" data-action="add">
                         <span class="glyphicon glyphicon-plus"></span>
                               {{_('Add')}}
                   </button>
-                  <!--<input type="button" class="btn btn-danger" data-action="del" value="{{_('Delete')}}"  disabled>-->
                   <button class="btn btn-danger delete-button five-pixel-margin" data-action="del" disabled>
                        <span class="glyphicon glyphicon-trash"></span>
                             {{_('Delete')}}
@@ -315,14 +306,6 @@
     </div>
   </div>
 </div>
-<!--<div class="row">
-  <div class="col-sm-12">
-    <button id="sub_mapping-create" class="btn btn-light pull-right" style="background-color:#008000;border-color: #9ACD32; color: white;width: 120px; height: 40px;font-size: 15px;" disabled>
-          <span class="glyphicon glyphicon-plus"></span>
-              {{_('Create')}}
-    </button>
-  </div>
-</div>-->
 <div class="row">
     <!--<div class= "col-sm-2"> -->
     <pre class="hide" id="hide_mapping_prop">{{hide_mapping_prop|tojson}}</pre>
@@ -351,14 +334,16 @@
 {%- block page_body%}
 {{ super() }}
 <!-- modal start -->
-<div class="modal fade" tabindex="-1" role="dialog" id="myModal">
-  <div class="modal-dialog" role="document">
+<div class="modal fade" tabindex="-1" role="dialog" id="myModal" aria-labelledby="updateHeader" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document"
+      style="display: table; width: 300px;">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title">{{_('Result')}}</h4>
+        <h4 class="modal-title">{{_('WEKO')}}</h4>
       </div>
-      <div class="modal-body">
+      <div class="modal-body" style="overflow-x: auto;">
+       <span class="glyphicon glyphicon-ok-sign fa-3x" style="vertical-align: middle; margin: 0 10px"></span> 
         <p>One fine body&hellip;</p>
       </div>
       <div class="modal-footer">
@@ -367,12 +352,13 @@
                 <span class="glyphicon glyphicon-download-alt"></span>       
                 {{_('Save')}}
        </button>
-        <button type="button" class="btn btn-inf close-button" data-dismiss="modal">
+        <button type="button" class="btn btn-info close-button" data-dismiss="modal">
             <span class="glyphicon glyphicon-remove"></span>
                 {{_('Close')}}
         </button>
       </div>
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
+</div><!-- /.modal -->      
+        
 {%- endblock page_body %}

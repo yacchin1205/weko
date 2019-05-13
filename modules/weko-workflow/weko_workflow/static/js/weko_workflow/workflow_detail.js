@@ -24,7 +24,8 @@ require([
               if (0 == data.code) {
                   document.location.href = data.data.redirect;
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                 $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {}
@@ -57,11 +58,13 @@ require([
             document.location.reload(true);
           }
         } else {
-          alert(data.msg);
+         // alert(data.msg);
+         $("#allModal").text(data.msg).modal('toggle');
         }
       },
       error: function(jqXHE, status) {
-        alert('server error');
+       // alert('server error');
+       $("#allModal").text("Server Error").modal('toggle');
         $('#myModal').modal('hide');
       }
     });
@@ -108,11 +111,13 @@ require([
             document.location.reload(true);
           }
         } else {
-          alert(data.msg);
+         // alert(data.msg);
+         $("#allModal").text(data.msg).modal('toggle');
         }
       },
       error: function(jqXHE, status) {
-        alert('server error');
+       // alert('server error');
+        $("#allModal").text("Server Error").modal('toggle');
         $('#myModal').modal('hide');
       }
     });
@@ -143,11 +148,13 @@ require([
                       document.location.reload(true);
                   }
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                 $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {
-              alert('server error');
+             // alert('server error');
+             $("#allModal").text("Server Error").modal('toggle');
           }
       });
   });
@@ -173,11 +180,13 @@ require([
                       document.location.reload(true);
                   }
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                  $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {
-              alert('server error');
+             // alert('server error');
+             $("#allModal").text("Server Error").modal('toggle');
           }
       });
   });
