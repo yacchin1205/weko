@@ -25,11 +25,13 @@ require([
             parent.document.location.href=redirectUrl;
           }
         } else {
-          parent.alert(data.msg);
+         // parent.alert(data.msg);
+         $("#myModal").text(data.msg).modal("toggle");
         }
       },
       error: function(jqXHE, status) {
-        parent.alert('server error');
+       // parent.alert('server error');
+        $("#myModal").text("Server Error").modal("toggle");
       }
     });
   });
@@ -55,11 +57,13 @@ require([
             parent.document.location.href=redirectUrl;
           }
         } else {
-          parent.alert(data.msg);
+            parent.alert(data.msg);
+            $("#myModal").text(data.msg).modal("toggle");
         }
       },
       error: function(jqXHE, status) {
-        parent.alert('server error');
+       // parent.alert('server error');
+       $("#myModal").text("Server Error").modal("toggle");
       }
     });
   });

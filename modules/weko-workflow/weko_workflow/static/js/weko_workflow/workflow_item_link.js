@@ -51,11 +51,13 @@ require([
             document.location.reload(true);
           }
         } else {
-          alert(data.msg);
+          //alert(data.msg);
+          $("#allModal").text(data.msg).modal('toggle');
         }
       },
       error: function(jqXHE, status) {
-        alert('server error');
+        //alert('server error');
+        $("#allModal").text('Server Error').modal('toggle');
         $('#myModal').modal('hide');
       }
     });
@@ -81,11 +83,13 @@ require([
             document.location.reload(true);
           }
         } else {
-          alert(data.msg);
+         // alert(data.msg);
+         $("#allModal").text(data.msg).modal('toggle');
         }
       },
       error: function(jqXHE, status) {
-        alert('server error');
+       // alert('server error');
+        $("#allModal").text("Server Error").modal('toggle');
         $('#myModal').modal('hide');
       }
     });
@@ -116,11 +120,13 @@ require([
                       document.location.reload(true);
                   }
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                 $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {
-              alert('server error');
+              //alert('server error');
+               $("#allModal").text('Server error').modal('toggle');
           }
       });
   });
@@ -146,11 +152,13 @@ require([
                       document.location.reload(true);
                   }
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                 $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {
-              alert('server error');
+             // alert('server error');
+             $("#myModal").text('server error').modal('toggle');
           }
       });
   });
@@ -176,11 +184,13 @@ require([
                       document.location.reload(true);
                   }
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                 $("#allModal").text(data.msg).modal('toggle');
               }
           },
           error: function (jqXHE, status) {
-              alert('server error');
+             // alert('server error');
+             $("#allModal").text('Server error').modal('toggle');
           }
       });
   });
@@ -249,7 +259,8 @@ function searchResItemLinkCtrl($scope, $rootScope, $http, $location) {
         }
        }
     }, function errorCallback(response) {
-      alert(response.data.msg)
+     // alert(response.data.msg)
+      $("#allModal").text(response.data.msg).modal('toggle');
     });
    }
 //   run button
@@ -276,8 +287,9 @@ function searchResItemLinkCtrl($scope, $rootScope, $http, $location) {
           }
         }
       }, function errorCallback(response) {
-         alert(response.data.msg)
-      });
+        // alert(response.data.msg)
+        $("#allModal").text(response.data.msg).modal('toggle'); 
+     });
     }
 }
 

@@ -142,7 +142,7 @@
 </div>
 <hr>
 
-<div class="modal fade" tabindex="-1" role="dialog" id="error_modal">
+<!--<div class="modal fade" tabindex="-1" role="dialog" id="error_modal">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
@@ -157,10 +157,31 @@
               <span class="glyphicon glyphicon-remove"></span>
                  {{_('Close')}}
         </button>
+      </div>-->
+<!--    </div> /.modal-content -->
+<!--  </div> /.modal-dialog -->
+<!--</div> /.modal -->
+
+<div class="modal fade" tabindex="-1" role="dialog" id="error_modal" aria-labelledby="updateHeader" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document"
+      style="display: table; width: 300px;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title">{{_('Error')}}</h4>
+      </div>
+      <div class="modal-body" style="overflow-x: auto;">
+        <span class="glyphicon glyphicon-exclamation-sign fa-3x" style="vertical-align: middle; margin: 0 10px"></span>
+        {{_('Could not download file.')}}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-info close-button" data-dismiss="modal">
+              <span class="glyphicon glyphicon-remove"></span>
+                 {{_('Close')}}
+        </button>
       </div>
     </div><!-- /.modal-content -->
   </div><!-- /.modal-dialog -->
 </div><!-- /.modal -->
-
 {%- endblock body %}
 

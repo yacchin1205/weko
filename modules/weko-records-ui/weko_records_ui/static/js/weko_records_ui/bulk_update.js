@@ -129,8 +129,9 @@ require([
         }
       });
       if (pids === '') {
-        alert('Please select items to update.');
-        return;
+        //alert('Please select items to update.');
+          $("#bulk_update_message").modal("toggle");
+         return;
       }
 
       // Get setting fields

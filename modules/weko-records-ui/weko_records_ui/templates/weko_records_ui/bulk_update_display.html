@@ -64,11 +64,11 @@
             <label class="radio-inline col-md-2">
               <input type="radio" name="access_type" value="open_access" checked>{{_('Open Access')}}
             </label>
-            <label class="radio-inline col-md-4">
+            <label class="radio-inline col-md-5">
               <input type="radio" name="access_type" value="open_date">{{_('Open Access Date')}}
               <input type="date" class="col-md-offset-1" name="access_date" value="" disabled>
             </label>
-            <label class="radio-inline col-md-3">
+            <label class="radio-inline col-md-2">
               <input type="radio" name="access_type" value="open_login">{{_('Login User Only')}}
             </label>
           </div>
@@ -242,5 +242,29 @@
          <span class="glyphicon glyphicon-edit"></span> 
           {{ _('Update') }}</a>
   </div>
+<!---->
+   <div id="bulk_update_message" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateHeader"
+             aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered" role="document" style="display: table; width: auto;">
+            <div class="modal-content">
+              <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">WEKO</h4>
+              </div>
+              <div class="modal-body" style="overflow-x: auto;">
+                <span class="glyphicon glyphicon-question-sign fa-3x" style="vertical-align: middle; margin: 0 10px"></span>
+                {{_('Please select item to update.')}}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-info cancel-button" data-dismiss="modal">
+                  <span class="glyphicon glyphicon-remove"></span>
+                    {{_('Cancel')}}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+<!---->
 </div>
 

@@ -219,6 +219,15 @@
   font-size:15px
 }
 
+.icon-button {
+ width: 40px;
+ height: 40px;
+}
+ 
+.icon-styling {
+    font-size: 36px;
+}
+
 .ten-pixel-margin {
  margin: 10px;
 }

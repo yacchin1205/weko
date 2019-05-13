@@ -161,8 +161,6 @@
               <td class="hide"><span id="td_action_ver_{{action.action_id}}">{{action.action_version|default(action.action.action_version)}}</span></td>
               <td>
                 <div class="btn-group" role="group" aria-label="Swap">
-                 <!-- <button type="button" class="btn btn-default sortable sortable_up" {%- if loop.first %}disabled{%- endif %}>↑</button>
-                  <button type="button" class="btn btn-default sortable sortable_down" {%- if loop.last %}disabled{%- endif %}>↓</button>-->
                  <button type="button" class="btn btn-default icon-button sortable sortable_up" {%- if loop.first %}disabled{%- endif %}>
                         <i class="fa fa-angle-up"></i>
                  </button><br/><br/>
@@ -189,6 +187,28 @@
     </button>
   </div>
 </div>
+
+<!-- Model Start -->
+<!--<div id="allModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateHeader" aria-hidden="true">          
+    <div class="modal-dialog modal-dialog-centered" role="document" style="display: table; width: 300px;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                 <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">{{_('WEKO')}}</h4>
+            </div>
+            <div class="modal-body" style="overflow-x: auto;">
+                 <p>One fine body&hellip;</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal">{{_('Cancel')}}</button>
+            </div>
+        </div>
+    </div>
+</div>-->
+<!-- Model End -->
+
 {%- endblock %}
 
 {%- block javascript %}
@@ -313,9 +333,11 @@
         success: function(data, status) {
           uptOrderInfo(false);
           alert(data.msg);
+        // $("#allModal").text(data.msg).modal('toggle');
         },
         error: function(jqXHR, status) {
           alert('update failed');
+        // $("#allModal").text("Update failed").modal('toggle');
         }
       });
     });
@@ -357,9 +379,11 @@
         data: JSON.stringify({'flow_name': flow_name}),
         success: function(data, status) {
           alert(data.msg);
+        // $("#allModal").text(data.msg).modal('show');
         },
         error: function(jqXHR, status) {
-          alert('update failed');
+         alert('update failed');
+        // $("#allModal").text("Update Failed").modal('show');
         }
       });
     });

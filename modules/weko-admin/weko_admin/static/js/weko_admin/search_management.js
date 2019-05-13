@@ -50,8 +50,10 @@
         dbJson = $scope.dataJson;
         $http.post(url, dbJson).then(function successCallback(response) {
            alert(response.data.message);
+        // $("#myModel").text(response.data.message).modal("toggle");
         }, function errorCallback(response) {
            alert(response.data.message);
+            //  $("#myModel").text(response.data.message).modal("toggle");
         });
       }
       // search key setting
