@@ -49,11 +49,13 @@
         var url = $location.path();
         dbJson = $scope.dataJson;
         $http.post(url, dbJson).then(function successCallback(response) {
-           alert(response.data.message);
-        // $("#myModel").text(response.data.message).modal("toggle");
+            var modalcontent =  response.data.message;
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
         }, function errorCallback(response) {
-           alert(response.data.message);
-            //  $("#myModel").text(response.data.message).modal("toggle");
+            var modalcontent = response.data.message;
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
         });
       }
       // search key setting

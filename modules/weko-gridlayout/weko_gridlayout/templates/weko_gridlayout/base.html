@@ -11,5 +11,8 @@
   </head>
   <body>
     {%- block page_body %}{%- endblock page_body %}
+    
+    {% from "weko_theme/macros/modal_page.html" import all_modal %}
+    {{ all_modal() }}
   </body>
 </html>

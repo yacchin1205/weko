@@ -35,7 +35,10 @@ class SearchMetaForm extends React.Component {
             }
             )
             .catch((error) => {
-                alert(error);
+                //alert(error);
+                var modalcontent = error;
+                $("#inputModal").html(modalcontent);
+                $("#allModal").modal("show");
             });
     }
 

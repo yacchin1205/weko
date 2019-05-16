@@ -47,7 +47,10 @@ require([
       });
       // Check fields
       if(fields.length !== uniqueFields.length) {
-        alert('Field already exists.');
+        //alert('Field already exists.');
+        var modalcontent =  "Field already exists";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         $(this).val('unselected');
         contents.each(function(i, elem) {
           $(elem).attr('hidden', 'hidden');
@@ -130,8 +133,11 @@ require([
       });
       if (pids === '') {
         //alert('Please select items to update.');
-          $("#bulk_update_message").modal("toggle");
-         return;
+        //  $("#bulk_update_message").modal("toggle");
+        var modalcontent =  "Please select items to update";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
+        return;
       }
 
       // Get setting fields
@@ -216,10 +222,16 @@ require([
           // Result
           if(errorMsgs.length !== 0) {
             var msg = 'Error List:\n'+errorMsgs.join('\n');
-            alert(msg);
+            //alert(msg);
+            var modalcontent =  msg;
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
 
           } else {
-            alert('All selected items have been updated successfully.');
+            //alert('All selected items have been updated successfully.');
+            var modalcontent =  "All selected items have been updated successfully.";
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
           }
         },
         error: function(status, error){
@@ -254,11 +266,17 @@ require([
               location.reload();
             }, 1000)
           } else {
-            alert(data.msg)
+           // alert(data.msg)
+           var modalcontent =  data.msg;
+           $("#inputModal").html(modalcontent);
+           $("#allModal").modal("show");
           }
         },
         error: function(status, error){
-          alert(error);
+          //alert(error);
+          var modalcontent =  error;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       });
     });

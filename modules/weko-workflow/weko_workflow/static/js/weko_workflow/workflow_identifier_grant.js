@@ -51,12 +51,16 @@ require([
           }
         } else {
          // alert(data.msg);
-          $("#myModal").text(data.msg).modal('toggle');
+          var modalcontent = data.msg;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       },
       error: function (jqXHE, status) {
        // alert('Server error');
-        $("#myModal").text("Server Error").modal('toggle');
+        var modalcontent =  "Server error";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         $('#myModal').modal('hide');
       }
     });

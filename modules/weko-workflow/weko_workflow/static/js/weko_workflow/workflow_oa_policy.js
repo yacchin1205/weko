@@ -79,7 +79,9 @@ require([
           },
           error: function(status, error) {
             //alert(error);
-            $("#myModal").text(error).modal('toggle');
+            var modalcontent = error;
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
           }
         });
       }
@@ -165,7 +167,9 @@ require([
           },
           error: function(status, error) {
            // alert(error);
-            $("#myModal").text(error).modal('toggle');
+            var modalcontent = error;
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
           }
         });
       }

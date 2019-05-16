@@ -24,7 +24,10 @@ class Repository extends React.Component {
             .then(
                 (result) => {
                     if (result.error) {
-                        alter(result.error);
+                        //alter(result.error);
+                        var modalcontent =  result.error;
+                        $("#inputModal").html(modalcontent);
+                        $("#allModal").modal("show");
                         return;
                     }
                     let options = result.repositories.map((option) => {
@@ -423,7 +426,10 @@ function addWidget() {
             let widgetTextColor = $(this).data('widgetTextcolor');
             let widgetFrameBorderColor = $(this).data('widgetFramebordercolor');
             if(MAIN_CONTENT_TYPE == widgetType && isHasMainContent){
-                alert("Main Content has been existed in Preview panel.");
+                // alert("Main Content has been existed in Preview panel.");
+                var modalcontent =  "Main Content has been existed in Preview panel.";
+                $("#inputModal").html(modalcontent);
+                $("#allModal").modal("show");
                 disableMainContentButton(true);
                 return false;
             }
@@ -563,13 +569,22 @@ function disableMainContentButton(isDisable){
 function saveWidgetDesignSetting(widgetDesignData) {
     let repositoryId = $("#repository-id").val();
     if (repositoryId == "0") {
-        alert('Please select the Repository.');
+        //alert('Please select the Repository.');
+        var modalcontent =  "Please select the repository";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         return false;
     } else if (!widgetDesignData) {
-        alert('Please add Widget to Preview panel.');
+        //alert('Please add Widget to Preview panel.');
+        var modalcontent =  "Please add Widget to Preview panel.";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         return false;
     } else if(!isHasMainContent){
-        alert('Please add Main Content to Preview panel.');
+        //alert('Please add Main Content to Preview panel.');
+        var modalcontent =  "Please add Main Content to Preview panel.";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         return false;
     }
 
@@ -590,12 +605,21 @@ function saveWidgetDesignSetting(widgetDesignData) {
             success: function (data, status) {
                 let err_msg = data.error;
                 if (err_msg) {
-                    alert(err_msg);
+                    //alert(err_msg);
+                    var modalcontent =  err_msg;
+                    $("#inputModal").html(modalcontent);
+                    $("#allModal").modal("show");
                 } else if (!data.result) {
-                    alert('Fail to save Widget design. Please check again.');
+                    //alert('Fail to save Widget design. Please check again.');
+                    var modalcontent =  "Fail to save Widget design. Please check again.";
+                    $("#inputModal").html(modalcontent);
+                    $("#allModal").modal("show");
                     return;
                 } else {
-                    alert('Widget design has been saved successfully.');
+                    //alert('Widget design has been saved successfully.');
+                    var modalcontent =  "Widget design has been saved successfully.";
+                    $("#inputModal").html(modalcontent);
+                    $("#allModal").modal("show");
                     return;
                 }
             },
@@ -604,7 +628,10 @@ function saveWidgetDesignSetting(widgetDesignData) {
             }
         });
     } else {
-        alert('Please add Widget to Preview panel.');
+        //alert('Please add Widget to Preview panel.');
+        var modalcontent =  "Please add Widget to Preview panel";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         return;
     }
 }

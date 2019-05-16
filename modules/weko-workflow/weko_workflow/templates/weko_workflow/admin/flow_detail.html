@@ -188,26 +188,8 @@
   </div>
 </div>
 
-<!-- Model Start -->
-<!--<div id="allModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateHeader" aria-hidden="true">          
-    <div class="modal-dialog modal-dialog-centered" role="document" style="display: table; width: 300px;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                 <span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title">{{_('WEKO')}}</h4>
-            </div>
-            <div class="modal-body" style="overflow-x: auto;">
-                 <p>One fine body&hellip;</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal">{{_('Cancel')}}</button>
-            </div>
-        </div>
-    </div>
-</div>-->
-<!-- Model End -->
+{% from "weko_theme/macros/modal_page.html" import all_modal %}
+{{ all_modal() }}
 
 {%- endblock %}
 
@@ -332,13 +314,18 @@
         data: localStorage.getItem('apply_action_list'),
         success: function(data, status) {
           uptOrderInfo(false);
-          alert(data.msg);
-        // $("#allModal").text(data.msg).modal('toggle');
+         // alert(data.msg);
+          var modalcontent =  data.msg;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         },
         error: function(jqXHR, status) {
-          alert('update failed');
-        // $("#allModal").text("Update failed").modal('toggle');
-        }
+         // alert('update failed');
+       
+         var modalcontent =  "Update Failed";
+         $("#inputModal").html(modalcontent);
+         $("#allModal").modal("show");
+         }
       });
     });
     $('#btn-new-flow').on('click', function(){
@@ -360,7 +347,10 @@
           }
         },
         error: function(jqXHR, status) {
-          alert('create failed');
+         // alert('create failed');
+          var modalcontent =  "Create failed";
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       });
     });
@@ -378,12 +368,16 @@
         contentType: 'application/json',
         data: JSON.stringify({'flow_name': flow_name}),
         success: function(data, status) {
-          alert(data.msg);
-        // $("#allModal").text(data.msg).modal('show');
+          // alert(data.msg);
+          var modalcontent =  data.msg;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         },
         error: function(jqXHR, status) {
-         alert('update failed');
-        // $("#allModal").text("Update Failed").modal('show');
+          // alert('update failed');
+          var modalcontent =  "Update failed";
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       });
     });

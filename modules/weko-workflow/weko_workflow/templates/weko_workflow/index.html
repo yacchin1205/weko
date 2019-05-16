@@ -27,5 +27,9 @@
 
 {%- block page_body_main %}
 {{_('Welcome to %(module_name)s', module_name=module_name)}}
+
+{% from "weko_theme/macros/modal_page.html" import all_modal %}
+{{ all_modal() }}
+
 {%- endblock %}
 

@@ -25,13 +25,17 @@ require([
             parent.document.location.href=redirectUrl;
           }
         } else {
-         // parent.alert(data.msg);
-         $("#myModal").text(data.msg).modal("toggle");
+          //parent.alert(data.msg);
+          var modalcontent =  data.msg;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       },
       error: function(jqXHE, status) {
-       // parent.alert('server error');
-        $("#myModal").text("Server Error").modal("toggle");
+          //parent.alert('server error');
+          var modalcontent =  "Server Error";
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
       }
     });
   });
@@ -57,13 +61,17 @@ require([
             parent.document.location.href=redirectUrl;
           }
         } else {
-            parent.alert(data.msg);
-            $("#myModal").text(data.msg).modal("toggle");
+            //parent.alert(data.msg);
+             var modalcontent =  data.msg;
+             $("#inputModal").html(modalcontent);
+             $("#allModal").modal("show");
         }
       },
       error: function(jqXHE, status) {
-       // parent.alert('server error');
-       $("#myModal").text("Server Error").modal("toggle");
+        // parent.alert('server error');
+        var modalcontent =  "Server Error";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
       }
     });
   });

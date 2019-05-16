@@ -110,9 +110,13 @@
           var url = $location.path();
           dbJson = $scope.dbJson;
           $http.post(url, dbJson).then(function successCallback(response) {
-             alert(response.data.message);
+             var modalcontent = response.data.message;
+             $("#inputModal").html(modalcontent);
+             $("#allModal").modal("show");
           }, function errorCallback(response) {
-             alert(response.data.message);
+             var modalcontent =  response.data.message;
+             $("#inputModal").html(modalcontent);
+             $("#allModal").modal("show");
           });
       }
 

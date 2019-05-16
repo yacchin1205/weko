@@ -837,9 +837,17 @@ require([
     var is_harvesting_type = selected_item_type.hasClass("harvesting_type");
     var is_belonging_item = selected_item_type.hasClass("belonging_item");
     if (is_harvesting_type) {
-      alert($("#msg_for_harvesting").val());
+      //alert($("#msg_for_harvesting").val());
+       var modalcontent =  $("#msg_for_harvesting").val();
+       $("#inputModal").html(modalcontent);
+       $("#allModal").modal("show");
+
     } else if (is_belonging_item) {
-      alert($("#msg_for_belonging_item").val());
+      //alert($("#msg_for_belonging_item").val());
+      var modalcontent =  $("#msg_for_belonging_item").val();
+      $("#inputModal").html(modalcontent);
+      $("#allModal").modal("show");
+
     } else {
       $("#item_type_delete_confirmation").modal("show");
     }
@@ -852,10 +860,17 @@ require([
         if (data.code == 0) {
           window.location.href = "/itemtypes/register";
         }
-        alert(data.msg);
+       // alert(data.msg);
+        var modalcontent =  data.msg;
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
       },
       function(errmsg){
-        alert(JSON.stringify(errmsg));
+        //alert(JSON.stringify(errmsg));
+         var modalcontent =  JSON.stringify(errmsg);
+         $("#inputModal").html(modalcontent);
+         $("#allModal").modal("show");
+
     });
   });
 

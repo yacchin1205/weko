@@ -214,33 +214,11 @@
         {{_('Save')}}
       </button>
     </div>
-<!--Model-->
-<!--   <div id="myModel" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateHeader" aria-hidden="true">          
-    <div class="modal-dialog modal-dialog-centered" role="document"
-        style="display: table; width: 500px;">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                 <span aria-hidden="true">&times;</span>
-                </button>
-                <h4 class="modal-title">{{_('WEKO')}}</h4>
-            </div>
-            <div class="modal-body" style="overflow-x: auto;">
-                <!-- <span class="glyphicon glyphicon-ok fa-3x" style="vertical-align: middle; margin: 0 10px"></span>
-                <p>One fine body&hellip;</p>-->
-          <!--  </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal">{{_('Cancel')}}</button>
-            </div>
-        </div>
-    </div>
-</div>--> <!--Model-->
   </div>
 </div>
-<!--Model-->
-    <div id="myModel" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="updateHeader" aria-hidden="true">
-     <div class="modal-dialog modal-dialog-centered" role="document"
-         style="display: table; width: 500px;">
+<!--
+<div id="allModal" class="modal fade"  tabindex="-1" role="dialog" aria-labelledby="updateHeader" aria-hidden="true">
+   <div class="modal-dialog modal-dialog-centered" role="document" style="display: table; width: 300px;">
          <div class="modal-content">
              <div class="modal-header">
                  <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -248,15 +226,16 @@
                  </button>
                  <h4 class="modal-title">{{_('WEKO')}}</h4>
              </div>
-             <div class="modal-body" style="overflow-x: auto;">
-                 <span class="glyphicon glyphicon-ok fa-3x" style="vertical-align: middle; margin: 0 10px"></span>
-                 <p>One fine body&hellip;</p>
+             <div class="modal-body">
+                  <p id="inputModal">One fine body&hellip;</p>
              </div>
              <div class="modal-footer">
-                 <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal">{{_('Cancel')}}</button>
+                 <button type="button" class="btn btn-secondary cancel-button" data-dismiss="modal">{{_('Cancel')}}</    button>
              </div>
          </div>
      </div>
- </div><!--Model-->
-
+ </div>
+-->
+{% from "weko_theme/macros/modal_page.html" import all_modal %}
+{{ all_modal() }}
 {%- endblock page_body_main %}

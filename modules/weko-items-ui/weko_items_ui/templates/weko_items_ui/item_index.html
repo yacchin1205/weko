@@ -44,4 +44,8 @@
     <div class="hide" id="post_error_url"></div>
     <app-root-tree></app-root-tree>
   </div>
+
+{% from "weko_theme/macros/modal_page.html" import all_modal %}
+{{ all_modal() }}
+
 {%- endblock page_body_main %}

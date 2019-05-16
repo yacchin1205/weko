@@ -75,12 +75,18 @@ require([
           function success(response){
             $('#journal_id').val($scope.cur_index_id);
             if (!$('form[name="depositionForm"]').hasClass("ng-invalid")) {
-              alert(response.data.message);
+              //alert(response.data.message);
+              var modalcontent = response.data.message;
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
             }
           },
           function error(response){
             if (!$('form[name="depositionForm"]').hasClass("ng-invalid")) {
-              alert(response.data.message);
+              //alert(response.data.message);
+              var modalcontent = response.data.message;
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
             }
           }
         );

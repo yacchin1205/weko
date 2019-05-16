@@ -25,7 +25,9 @@ require([
                   document.location.href = data.data.redirect;
               } else {
                  // alert(data.msg);
-                 $("#allModal").text(data.msg).modal('toggle');
+                  var modalcontent =  data.msg;
+                  $("#inputModal").html(modalcontent);
+                  $("#allModal").modal("show");
               }
           },
           error: function (jqXHE, status) {}
@@ -59,12 +61,16 @@ require([
           }
         } else {
          // alert(data.msg);
-         $("#allModal").text(data.msg).modal('toggle');
+          var modalcontent =  data.msg;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       },
       error: function(jqXHE, status) {
        // alert('server error');
-       $("#allModal").text("Server Error").modal('toggle');
+        var modalcontent =  "Server Error";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
         $('#myModal').modal('hide');
       }
     });
@@ -112,13 +118,17 @@ require([
           }
         } else {
          // alert(data.msg);
-         $("#allModal").text(data.msg).modal('toggle');
+          var modalcontent =  data.msg;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         }
       },
       error: function(jqXHE, status) {
        // alert('server error');
-        $("#allModal").text("Server Error").modal('toggle');
-        $('#myModal').modal('hide');
+         var modalcontent =  "Server Error";
+         $("#inputModal").html(modalcontent);
+         $("#allModal").modal("show");
+         $('#myModal').modal('hide');
       }
     });
   });
@@ -149,12 +159,16 @@ require([
                   }
               } else {
                  // alert(data.msg);
-                 $("#allModal").text(data.msg).modal('toggle');
+                  var modalcontent =  data.msg;
+                  $("#inputModal").html(modalcontent);
+                  $("#allModal").modal("show");
               }
           },
           error: function (jqXHE, status) {
              // alert('server error');
-             $("#allModal").text("Server Error").modal('toggle');
+              var modalcontent =  "Server Error";
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
           }
       });
   });
@@ -181,12 +195,16 @@ require([
                   }
               } else {
                  // alert(data.msg);
-                  $("#allModal").text(data.msg).modal('toggle');
+                   var modalcontent =  data.msg;
+                   $("#inputModal").html(modalcontent);
+                   $("#allModal").modal("show");
               }
           },
           error: function (jqXHE, status) {
              // alert('server error');
-             $("#allModal").text("Server Error").modal('toggle');
+              var modalcontent =  "Server Error";
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
           }
       });
   });
@@ -212,11 +230,17 @@ require([
                       document.location.reload(true);
                   }
               } else {
-                  alert(data.msg);
+                 // alert(data.msg);
+                  var modalcontent =  data.msg;
+                  $("#inputModal").html(modalcontent);
+                  $("#allModal").modal("show");
               }
           },
           error: function (jqXHE, status) {
-              alert('server error');
+              //alert('server error');
+               var modalcontent =  "Server Error";
+               $("#inputModal").html(modalcontent);
+               $("#allModal").modal("show");
           }
       });
   });

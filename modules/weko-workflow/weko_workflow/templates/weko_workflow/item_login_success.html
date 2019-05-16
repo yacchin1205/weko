@@ -276,7 +276,6 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" id="btnModalClose" data-dismiss="modal">{{_('Close')}}</button>
->>>>>>> feature/sp7-wei-workflow
         </div>
       </div>
     </div>
@@ -289,4 +288,8 @@
 <div class="communities">
 </div>
 {%- endif%}
+
+{% from "weko_theme/macros/modal_page.html" import all_modal %}
+{{ all_modal() }}
+
 {%- endblock page_body %}

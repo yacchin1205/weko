@@ -170,7 +170,10 @@ get_search_data = function (keyword) {
     method: "GET",
     success: function(data, status) {
       if (data.error) {
-        alert("Some errors have occured!\nDetail:" + data.error);
+          //alert("Some errors have occured!\nDetail:" + data.error);
+          var modalcontent =  "Some errors have occured!\nDetail:" + data.error;
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
         return null;
       } else {
         if (keyword === 'username') {
@@ -193,7 +196,10 @@ get_search_data = function (keyword) {
       }
     },
     error: function(data, status) {
-      alert("Cannot connect to server!");
+        //alert("Cannot connect to server!");
+        var modalcontent =  "Cannot connect to server!";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
     }
   });
 }
@@ -237,7 +243,10 @@ get_autofill_data = function (keyword, data, mode) {
       }
     },
     error: function(data, status) {
-      alert("Cannot connect to server!");
+        //alert("Cannot connect to server!");
+        var modalcontent =  "Cannot connect to server!";
+        $("#inputModal").html(modalcontent);
+        $("#allModal").modal("show");
     }
   });
 }
@@ -363,7 +372,10 @@ function handleSharePermission(value) {
                 }
               },
               error: function(data, status) {
-                alert("Cannot connect to server!");
+                  // alert("Cannot connect to server!");
+                  var modalcontent =  "Cannot connect to server!";
+                  $("#inputModal").html(modalcontent);
+                  $("#allModal").modal("show");
               }
             });
           } else {
@@ -907,7 +919,10 @@ function handleSharePermission(value) {
 
       $scope.searchSource = function(model_id,arrayFlg,form) {
 
-        alert(form.key[1]);
+          //alert(form.key[1]);
+          var modalcontent = form.key[1];
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
 
       }
 
@@ -1096,7 +1111,10 @@ function handleSharePermission(value) {
             dataType: "json",
             success: function(data, stauts) {
               if (data.error) {
-                alert('Some errors have occured!\nDetail: ' + data.error);
+                  alert('Some errors have occured!\nDetail: ' + data.error);
+                  //var modalcontent =  "Some errors have occured!\nDetail: " :" + data.error;
+                  //$("#inputModal").html(modalcontent);
+                  //$("#allModal").modal("show");
               } else {
                 if (data.validation) {
                   userInfo = data.results;
@@ -1106,22 +1124,35 @@ function handleSharePermission(value) {
                     userID: userInfo.user_id
                   };
                   if (otherUser.userID == current_login_user) {
-                    alert('You cannot specify yourself in "Other users" setting.');
+                      alert('You cannot specify yourself in "Other users" setting.');
+                      //var modalcontent =  "You cannot specify yourself in "Other users" setting.";
+                      //$("#inputModal").html(modalcontent);
+                      //$("#allModal").modal("show");
                   }else {
                     $rootScope.recordsVM.invenioRecordsModel['shared_user_id'] = otherUser.userID;
                     result = true;
                   }
                 } else {
-                  alert('Shared user information is not valid\nPlease check it again!');
+                    alert('Shared user information is not valid\nPlease check it again!');
+                    //var modalcontent =  "Shared user information is not valid\nPlease check it again!";
+                    //$("#inputModal").html(modalcontent);
+                    //$("#allModal").modal("show");
+
                 }
               }
             },
             error: function(data, status) {
-              alert('Cannot connect to server!');
+                //alert('Cannot connect to server!');
+                var modalcontent =  "Cannot connect to server";
+                $("#inputModal").html(modalcontent);
+                $("#allModal").modal("show");
             }
           })
         } else {
-          alert('Some errors have occured when edit Contributer');
+            //alert('Some errors have occured when edit Contributer');
+            var modalcontent =  "Some errors have occured when edit Contributer";
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
         }
         return result;
       }
@@ -1163,7 +1194,10 @@ function handleSharePermission(value) {
             }
           },
           error: function(data, status) {
-            alert('Cannot connect to server!');
+              //alert('Cannot connect to server!');
+              var modalcontent =  "Cannot connect to server";
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
           }
         });
       }
@@ -1171,9 +1205,15 @@ function handleSharePermission(value) {
       $scope.updateDataJson = async function () {
         this.genTitleAndPubDate();
         if (!$rootScope.recordsVM.invenioRecordsModel['title']) {
-          alert('Title is required! Please input title');
+            //alert('Title is required! Please input title');
+            var modalcontent =  "Title is required! Please input title";
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
         }else if (!$rootScope.recordsVM.invenioRecordsModel['pubdate']){
-          alert('PubDate is required! Please input pubDate');
+            //alert('PubDate is required! Please input pubDate');
+            var modalcontent =  "PubDate is required! Please input pubDate.";
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
         }
         else {
           let next_frame = $('#next-frame').val();
@@ -1234,10 +1274,16 @@ function handleSharePermission(value) {
         };
         InvenioRecordsAPI.request(request).then(
           function success(response) {
-            alert(response.data.msg);
+              //alert(response.data.msg);
+              var modalcontent = response.data.msg;
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
           },
           function error(response) {
-            alert(response);
+              //alert(response);
+              var modalcontent = response;
+              $("#inputModal").html(modalcontent);
+              $("#allModal").modal("show");
           }
         );
       }
