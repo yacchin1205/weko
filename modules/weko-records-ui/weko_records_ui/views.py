@@ -526,5 +526,4 @@ def citation(record, pid, style=None, ln=None):
     except Exception:
         # current_app.logger.exception(
         #     'Citation formatting for record {0} failed.'.format(str(record.id)))
-            return None
         return None
