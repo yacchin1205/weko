@@ -524,6 +524,7 @@ def citation(record, pid, style=None, ln=None):
         _record = WekoRecord.get_record(pid.object_uuid)
         return citeproc_v1.serialize(pid, _record, style=style, locale=locale)
     except Exception:
-        current_app.logger.exception(
-            'Citation formatting for record {0} failed.'.format(str(record.id)))
+        # current_app.logger.exception(
+        #     'Citation formatting for record {0} failed.'.format(str(record.id)))
+            return None
         return None

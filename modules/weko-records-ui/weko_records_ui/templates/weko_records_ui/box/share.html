@@ -37,15 +37,11 @@
     <invenio-csl
       {%- if citation_result %}
         ng-init="vm.citationResult = '{{citation_result}}'"
-      {%- else %}
-        ng-init="vm.error = '{{_('Your record could not be processed by the citation formatter')}}'"
       {%- endif %}
     >
       <invenio-csl-citeproc
        endpoint="{{ config.CSL_RECORDS_API_ENDPOINT ~ pid.pid_value }}"
        template="{{ url_for('static', filename=config.CSL_JSTEMPLATE_CITEPROC) }}"></invenio-csl-citeproc>
-      <invenio-csl-error
-       template="{{ url_for('static', filename=config.CSL_JSTEMPLATE_ERROR) }}"></invenio-csl-error>
       <invenio-csl-loading
        template="{{ url_for('static', filename=config.CSL_JSTEMPLATE_LOADING) }}"></invenio-csl-loading>
       <invenio-csl-typeahead
