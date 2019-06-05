@@ -33,6 +33,11 @@
   font-size: 15px;
 }
 
+.remove-button {
+  width: 30px;
+  height: 30px;
+}
+
 .detail-search-button {
   width: 150px;
   height: 40px;

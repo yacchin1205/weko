@@ -95,6 +95,24 @@ $(document).ready(function () {
       });
     }
   });
+
+   $('#addEmail').on('click', function () {
+        moreEmail('id_'+$.now()); 
+    });
+
+    $('#saveEmail').on('click', function () {
+        var message = 'Successfully email address saved.';
+        addAlert(message);
+    });
+
+    // $('#newEmail').on('click','#removeEmail_'+row_id,function(){
+        //page_global.table_row.splice($.inArray(row_id,page_global.table_row),1);
+    //$('#email_' + row_id).remove();
+        //initSortedBtn();
+    // });
+    $('#removeEmail_'+row_id).on('click',function(){
+        $('#email_'+row_id).remove();
+    });
 });
 
 function setStatsReportSubmit(statsReports) {
@@ -103,3 +121,24 @@ function setStatsReportSubmit(statsReports) {
   $('#report_file_input').val('');
 }
 
+function addAlert(message) {
+    $('#alerts').append(
+        '<div class="alert alert-light" id="alert-style">' +
+        '<button type="button" class="close" data-dismiss="alert">' +
+        '&times;</button>' + message + '</div>');
+         }
+
+function moreEmail(row_id){
+    $('#newEmail').append(
+    '<div class="email_' + row_id + '">'
+    +'<div class="col-md-5 col-md-offset-3" id="emailAdd">'
+    +'<input type="text" class="form-control" id="inputEmail_' + row_id + '" name="inputEmail" placeholder="Enter email address." value=""></br>'
+    +'</div>'
+    +'<div class="col-md-1">'
+    +'<button class="btn-danger remove-button" id="removeEmail_' + row_id + '">'
+    +'<span class="glyphicon glyphicon-remove"></span>'
+    +'</button>'
+    +'</div>'
+    +'</div>'
+    );
+}
