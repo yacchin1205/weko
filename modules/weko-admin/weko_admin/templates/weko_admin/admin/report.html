@@ -160,9 +160,12 @@
           ')}}</p>
   </div>
   <div class="col-md-5 col-md-offset-3">
-          <input type="text" class="form-control" id="inputEmail"
+      <form  name="email_form" method="POST" id="email_form"
+                                             action={{url_for('report.get_email_address')}}>
+      <input type="text" class="form-control" id="inputEmail"
                                                   name="inputEmail"
                                                   placeholder="{{_('Enter email address.')}}" value=""></br>
+      </form>
   </div>
   <div id="newEmail"></div>
   </div>

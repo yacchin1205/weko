@@ -387,16 +387,16 @@ class ReportView(BaseView):
             file_type = 'FileUsingPerUser_'
         return 'logReport_' + file_type + year + '-' + month + '.tsv'
 
-"""    @expose('/',methods=['POST'])
+    @expose('/',methods=['POST'])
     def get_email_address(self):
-"""        """Save Email Address"""
-"""        stats_json = json.loads(request.form.get('report'))
+        """Save Email Address"""
+        stats_json = json.loads(request.form.get('report'))
         inputEmail = request.form.get('inputEmail')
 
         insert_email = StatisticsEmail()
         insert_email.insert_email_address(inputEmail)
         return jsonify(code=0, msg=_('Email Address save successfully.'))
-"""
+
 class LanguageSettingView(BaseView):
     @expose('/', methods=['GET', 'POST'])
     def index(self):

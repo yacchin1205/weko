@@ -614,10 +614,10 @@ class StatisticTarget(db.Model):
 
 """ Save Email Address in Report """
 
-"""class StatisticsEmail(db.Model):"""
+class StatisticsEmail(db.Model):
     """ Save Email Address."""
 
-"""    __tablename__ = 'stats_email_address'
+    __tablename__ = 'stats_email_address'
 
      id = db.Column(db.Integer(), primary_key=True, nullable=False,
                           unique=True,autoincrement=True)
@@ -625,14 +625,14 @@ class StatisticTarget(db.Model):
 
      @classmethod
      def insert_email_address(cls, id, email_address):
-"""         """ Insert Email Address.
+         """ Insert Email Address.
 
              :param id
              :param email_address
              :return: True if successfully save the email address otherwise
              False."""
 
-"""        try:
+        try:
              dataObj = StatisticsEmail()
              with db.session.begin_nested():
                  dataObj.id = id
@@ -644,7 +644,7 @@ class StatisticTarget(db.Model):
              db.session.rollback()
              current_app.logger.debug(ex)
              return False
-""" 
+
  """ End """
 
 __all__ = ([
