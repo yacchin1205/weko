@@ -612,41 +612,38 @@ class StatisticTarget(db.Model):
 
         return cls
 
-""" Save Email Address in Report """
 
 class StatisticsEmail(db.Model):
     """ Save Email Address."""
 
     __tablename__ = 'stats_email_address'
 
-     id = db.Column(db.Integer,primary_key=True,autoincrement=True)
-     email_address = db.Column(db.String(255),nullable=False)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    email_address = db.Column(db.String(255), nullable=False)
 
-     @classmethod
-     def insert_email_address(cls, id, email_address):
-         """ Insert Email Address.
+    @classmethod
+    def insert_email_address(cls, email_address):
+        """ Insert Email Address.
 
-             :param id
-             :param email_address
-             :return: True if successfully save the email address otherwise
-             False."""
+        :param id
+        :param email_address
+        :return: True if successfully save the email address otherwise
+        False."""
 
         try:
-             dataObj = StatisticsEmail()
-             with db.session.begin_nested():
-                 dataObj.id = id
-                 dataObj.email_address = email_address
-                 db.session.add(dataObj)
-             db.session.commit()
-             """return True"""     
+            dataObj = StatisticsEmail()
+            with db.session.begin_nested():
+                dataObj.email_address = email_address
+                db.session.add(dataObj)
+            db.session.commit()
+            """return True"""
         except BaseException as ex:
-             db.session.rollback()
-             current_app.logger.debug(ex)
-             """return False"""
-             raise
-         return cls
+            db.session.rollback()
+            current_app.logger.debug(ex)
+            """return False"""
+            raise
 
- """ End """
+        return cls
 
 __all__ = ([
     'SearchManagement', 'AdminLangSettings', 'ApiCertificate',

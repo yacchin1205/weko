@@ -100,7 +100,7 @@ $(document).ready(function () {
         moreEmail('id_'+$.now()); 
     });
 
-    /*    $('#saveEmail').on('click', function () {
+    $('#saveEmail').on('click', function () {
         var emailAdd = $('#inputEmail').val();
         
         $.ajax({
@@ -121,7 +121,7 @@ $(document).ready(function () {
         })
         //var message = 'Successfully email address saved.';
         //addAlert(message);
-    });*/
+    });
 
     // $('#newEmail').on('click','#removeEmail_'+row_id,function(){
         //page_global.table_row.splice($.inArray(row_id,page_global.table_row),1);

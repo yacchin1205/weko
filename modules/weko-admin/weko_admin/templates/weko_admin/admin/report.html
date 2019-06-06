@@ -152,6 +152,8 @@
 </div>
 <hr>
 
+<form  name="email_form" method="POST" id="email_form"
+                                                 action={{url_for('report.get_email_address')}}>
 <div class="row content-font">
   <div class="col-md-2"></div>
   <div class="col-md-4">
@@ -159,18 +161,15 @@
       <p>{{_('Please register the email address to send the report:
           ')}}</p>
   </div>
-  <div class="col-md-5 col-md-offset-3">
-<!--      <form  name="email_form" method="POST" id="email_form"
-                                             action={{url_for('report.get_email_address')}}>-->
+  <div class="form-group col-md-5 col-md-offset-3">
         <input type="text" class="form-control" id="inputEmail"
                                                   name="inputEmail"
-                                                  placeholder="{{_('Enter email address.')}}" value=""></br>
-      <!--   </form>-->
+                                                  placeholder="{{_('Enter email address.')}}" value={{ data }}></br>
   </div>
   <div id="newEmail"></div>
   </div>
   <div class="col-md-3"></div>
-  <div class="col-md-8">
+  <div class="form-actions col-md-8">
       <div class="col-md-2">
         <button id="addEmail" class="btn btn-light add-big-button">
             <span class="glyphicon glyphicon-plus"></span>
@@ -185,7 +184,7 @@
         </button>
       </div>
   </div>
-
+  </form>
 <div id="root"></div>
 
 <div class="modal fade" tabindex="-1" role="dialog" id="error_modal">

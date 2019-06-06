@@ -29,7 +29,7 @@ import zipfile
 from datetime import datetime
 from io import BytesIO, StringIO
 
-from flask import abort, current_app, flash, jsonify, make_response, request
+from flask import abort, current_app, flash, jsonify,make_response,request,redirect,url_for
 from flask_admin import BaseView, expose
 from flask_babelex import gettext as _
 from flask_login import current_user
@@ -38,7 +38,7 @@ from weko_records.api import ItemsMetadata
 
 from .permissions import admin_permission_factory
 from .utils import allowed_file
-
+from .models import StatisticsEmail
 
 class StyleSettingView(BaseView):
     @expose('/', methods=['GET', 'POST'])
@@ -387,15 +387,15 @@ class ReportView(BaseView):
             file_type = 'FileUsingPerUser_'
         return 'logReport_' + file_type + year + '-' + month + '.tsv'
 
-    @expose('/',methods=['POST'])
+    @expose('/get_email_address',methods=['POST'])
     def get_email_address(self):
         """Save Email Address"""
-        stats_json = json.loads(request.form.get('report'))
+        
         inputEmail = request.form.get('inputEmail')
 
         insert_email = StatisticsEmail()
         insert_email.insert_email_address(inputEmail)
-        return jsonify(code=0, msg=_('Email Address save successfully.'))
+        return redirect(url_for("report.index"))
 
 class LanguageSettingView(BaseView):
     @expose('/', methods=['GET', 'POST'])
