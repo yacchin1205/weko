@@ -100,10 +100,28 @@ $(document).ready(function () {
         moreEmail('id_'+$.now()); 
     });
 
-    $('#saveEmail').on('click', function () {
-        var message = 'Successfully email address saved.';
-        addAlert(message);
-    });
+    /*    $('#saveEmail').on('click', function () {
+        var emailAdd = $('#inputEmail').val();
+        
+        $.ajax({
+            url: "/api/stats/get_email_address",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(emailAdd),
+            dataType: 'json',
+            success: function(data){
+                var message = 'Successfully email address saved.';
+                addAlert(message);
+            }
+            error: function(error){
+                var modalcontent = error;
+                $("#inputModal").html(modalcontent);
+                $("#allModal").modal("show");
+            }
+        })
+        //var message = 'Successfully email address saved.';
+        //addAlert(message);
+    });*/
 
     // $('#newEmail').on('click','#removeEmail_'+row_id,function(){
         //page_global.table_row.splice($.inArray(row_id,page_global.table_row),1);

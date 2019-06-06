@@ -619,8 +619,7 @@ class StatisticsEmail(db.Model):
 
     __tablename__ = 'stats_email_address'
 
-     id = db.Column(db.Integer(), primary_key=True, nullable=False,
-                          unique=True,autoincrement=True)
+     id = db.Column(db.Integer,primary_key=True,autoincrement=True)
      email_address = db.Column(db.String(255),nullable=False)
 
      @classmethod
@@ -639,15 +638,17 @@ class StatisticsEmail(db.Model):
                  dataObj.email_address = email_address
                  db.session.add(dataObj)
              db.session.commit()
-             return True     
+             """return True"""     
         except BaseException as ex:
              db.session.rollback()
              current_app.logger.debug(ex)
-             return False
+             """return False"""
+             raise
+         return cls
 
  """ End """
 
 __all__ = ([
     'SearchManagement', 'AdminLangSettings', 'ApiCertificate',
-    'StatisticUnit', 'StatisticTarget'
+    'StatisticUnit', 'StatisticTarget','StatisticsEmail'
 ])
