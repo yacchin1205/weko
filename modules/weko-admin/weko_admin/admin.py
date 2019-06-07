@@ -243,9 +243,12 @@ class ReportView(BaseView):
                     total = total + bucket['doc_count']
 
             result.update({'total': total})
+            all_emailAddress = self.all_email()
+            current_app.logger.info(all_emailAddress)
 
             return self.render(
                 current_app.config['WEKO_ADMIN_REPORT_TEMPLATE'],
+                email=all_emailAddress,
                 result=result,
                 now=datetime.utcnow())
         except Exception:
@@ -392,10 +395,17 @@ class ReportView(BaseView):
         """Save Email Address"""
         
         inputEmail = request.form.get('inputEmail')
-
-        insert_email = StatisticsEmail()
-        insert_email.insert_email_address(inputEmail)
+        current_app.logger.info(inputEmail)
+        StatisticsEmail.insert_email_address(inputEmail)
         return redirect(url_for("report.index"))
+
+    def all_email(self):
+        """Get email address list info.
+
+        :return:
+        """
+        all = StatisticsEmail().get_all()
+        return all
 
 class LanguageSettingView(BaseView):
     @expose('/', methods=['GET', 'POST'])

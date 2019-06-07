@@ -645,6 +645,19 @@ class StatisticsEmail(db.Model):
 
         return cls
 
+    @classmethod
+    def get_all(cls):
+        """Get all email address.
+        :return: email_address
+        """
+        try:
+            all = cls.query.all()
+        except Exception as ex:
+            current_app.logger.debug(ex)
+            all = []
+            raise
+        return all
+
 __all__ = ([
     'SearchManagement', 'AdminLangSettings', 'ApiCertificate',
     'StatisticUnit', 'StatisticTarget','StatisticsEmail'
