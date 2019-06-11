@@ -129,9 +129,9 @@ function moreEmail(){
          +'placeholder="Enter email address." value=""></br>'
          +'</div>'
          +'<div class="col-md-1">'
-         +'<button class="btn-danger remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">'
+         +'<a class="btn-default remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">'
          +'<span class="glyphicon glyphicon-remove"></span>'
-         +'</button>'
+         +'</a>'
          +'</div>'
          +'</div>'
     );

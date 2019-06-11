@@ -659,7 +659,6 @@ class StatisticsEmail(db.Model):
     def delete_all_row(cls):
         """Delete all."""
         try: 
-           all = cls.query.all()
            delete_all = StatisticsEmail.query.delete()
         except Exception as ex:
              current_app.logger.debug(ex)

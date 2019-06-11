@@ -164,37 +164,32 @@
   <input type="hidden" id="email_address_length"
                         value="{{(email | length) if email else 1}}">
 
-<!--<div class="form-group col-md-5 col-md-offset-3">-->
-    <!--<input type="hidden" id="email_form"
-        value="{{(email | length) if email else 1}}">-->
-    {% if not email %}
-    <div class="form-group col-md-5 col-md-offset-3">
-    <input type="text" class="form-control" id="inputEmail_0"
+  {% if not email %}
+  <div class="form-group col-md-5 col-md-offset-3">
+        <input type="text" class="form-control" id="inputEmail_0"
                                                    name="inputEmail"
                                                    placeholder="{{_('Enter email address.')}}"
                                                    value=""></br>
-    </div>
-    {% endif %}
-    <!--<input type="text" class="form-control" id="inputEmail_0"
-                                                   name="inputEmail_0"
-                                                   placeholder="{{_('Enter email address.')}}"
-                                                   value=""></br>-->
-    {% for email in email%}
-    <div id="emailID_{{email.id}}">
-    <div class="form-group col-md-5 col-md-offset-3">
-        <input type="text" class="form-control" id="inputEmail_{{email.id}}"
+  </div>
+  {% endif %}
+  {% for email in email %}
+   <div id="emailID_{{email.id}}">
+        <div class="form-group col-md-5 col-md-offset-3">
+            <input type="text" class="form-control" id="inputEmail_{{email.id}}"
                                                   name="inputEmail"
                                                   placeholder="{{_('Enter email address.')}}" 
                                                   value={{email.email_address}}></br>
-    </div>
-    <div class="col-md-1">
-        <a class="btn-danger remove-button"
-            onclick="$('#inputEmail_{{email.id}}').remove();"  id="remove_button">
-            <span class="glyphicon glyphicon-remove"></span>
-        </a>
-    </div>
-    </div>
-    {% endfor %}
+        </div>
+         
+        <div class="col-md-1">
+            <a class="btn-default remove-button"
+                onclick="$('#inputEmail_{{email.id}}').remove();"  id="remove_button">
+                <span class="glyphicon glyphicon-remove"></span>
+            </a>
+        </div>
+    
+   </div>
+   {% endfor %}
   
   <div id="newEmail" class="form-group" id="emailAdd"></div>
   </div>
@@ -208,10 +203,10 @@
       </div>
       <div class="col-md-4"></div>
       <div class="col-md-2">
-        <button id="saveEmail" class="btn btn-primary save-button">
+        <a id="saveEmail" class="btn btn-primary save-button">
             <span class="glyphicon glyphicon-download-alt"></span>
                 {{_('Save')}}
-        </button>
+        </a>
       </div>
   </div>
   </form>
