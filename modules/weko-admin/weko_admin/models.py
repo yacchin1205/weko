@@ -654,6 +654,17 @@ class StatisticsEmail(db.Model):
             all = []
             raise
         return all
+ 
+    @classmethod
+    def delete_all_row(cls):
+        """Delete all."""
+        try: 
+           all = cls.query.all()
+           delete_all = StatisticsEmail.query.delete()
+        except Exception as ex:
+             current_app.logger.debug(ex)
+             raise
+        return delete_all
 
 __all__ = ([
     'SearchManagement', 'AdminLangSettings', 'ApiCertificate',

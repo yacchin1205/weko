@@ -396,6 +396,7 @@ class ReportView(BaseView):
         
         inputEmail = request.form.getlist('inputEmail')
         current_app.logger.info(inputEmail)
+        StatisticsEmail.delete_all_row()
         for input in inputEmail:
             StatisticsEmail.insert_email_address(input)
         return redirect(url_for("report.index"))

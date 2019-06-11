@@ -97,45 +97,13 @@ $(document).ready(function () {
   });
 
    $('#addEmail').on('click', function () {
-       var addressRange = parseInt($('#email_address_length').val());
-
-   //    moreEmail(addressRange);
-   //    $('#email_address_length').val((addressRange + 1));
-        $(moreEmail(addressRange)).insertBefore('#removeEmail'+ addressRange);
-        $('#address_' + addressRange).append(' &nbsp;');
-        $('#email_address_length').val((addressRange + 1));
+         $(moreEmail());
     });
 
     $('#saveEmail').on('click', function () {
          $('#email_form').submit();
          var message = 'Successfully email address saved.';
          addAlert(message);
-        /*var emailAdd = $('#inputEmail').val();
-        
-        $.ajax({
-            url: "/api/stats/get_email_address",
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify(emailAdd),
-            dataType: 'json',
-            success: function(data){
-                var message = 'Successfully email address saved.';
-                addAlert(message);
-            }
-            error: function(error){
-                var modalcontent = error;
-                $("#inputModal").html(modalcontent);
-                $("#allModal").modal("show");
-            }
-        });*/
-    });
-
-    $('#removeEmail_'+row_id).on('click',function(){
-        //$('#email_'+row_id).remove();
-
-        var addressRange = parseInt($('#email_address_length').val());
-        $('#removeEmail' + row_id).remove();
-        $('#email_address_length').val((addressRange - 1));
     });
 });
 
@@ -152,19 +120,20 @@ function addAlert(message) {
         '&times;</button>' + message + '</div>');
          }
 
-function moreEmail(address_id){
-    var id = address_id;
-    $('#newEmail').append(
-    '<div class="col-md-5 col-md-offset-3" id="emailAdd">'
-    +'<input type="text" class="form-control" name="inputEmail" id="inputEmail_' + id + '"'
-    // +'<input type="text" class="form-control" name="inputEmail" id="inputEmail" name="inputEmail"'
-    +'placeholder="Enter email address." value=""></br>'
-    +'</div>'
-    +'<div class="col-md-1">'
-    +'<button class="btn-danger remove-button" id="remove_button_' + id + '">'
-    +'<span class="glyphicon glyphicon-remove"></span>'
-    +'</button>'
-    +'</div>'
-
+function moreEmail(){
+    
+        $('#newEmail').append(
+         '<div id="emailID">'
+         +'<div class="col-md-5 col-md-offset-3" id="emailAdd">'
+         +'<input type="text" class="form-control" name="inputEmail" id="inputEmail"'
+         +'placeholder="Enter email address." value=""></br>'
+         +'</div>'
+         +'<div class="col-md-1">'
+         +'<button class="btn-danger remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">'
+         +'<span class="glyphicon glyphicon-remove"></span>'
+         +'</button>'
+         +'</div>'
+         +'</div>'
     );
 }
+
