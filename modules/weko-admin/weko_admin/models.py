@@ -636,13 +636,10 @@ class StatisticsEmail(db.Model):
                 dataObj.email_address = email_address
                 db.session.add(dataObj)
             db.session.commit()
-            """return True"""
         except BaseException as ex:
             db.session.rollback()
             current_app.logger.debug(ex)
-            """return False"""
             raise
-
         return cls
 
     @classmethod

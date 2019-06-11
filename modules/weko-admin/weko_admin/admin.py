@@ -394,9 +394,10 @@ class ReportView(BaseView):
     def get_email_address(self):
         """Save Email Address"""
         
-        inputEmail = request.form.get('inputEmail')
+        inputEmail = request.form.getlist('inputEmail')
         current_app.logger.info(inputEmail)
-        StatisticsEmail.insert_email_address(inputEmail)
+        for input in inputEmail:
+            StatisticsEmail.insert_email_address(input)
         return redirect(url_for("report.index"))
 
     def all_email(self):

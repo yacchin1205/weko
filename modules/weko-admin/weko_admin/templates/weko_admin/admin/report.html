@@ -161,22 +161,38 @@
       <p>{{_('Please register the email address to send the report:
           ')}}</p>
   </div>
+  <input type="hidden" id="email_address_length"
+                        value="{{(email | length) if email else 1}}">
   <div class="form-group col-md-5 col-md-offset-3">
-        <input type="text" class="form-control" id="inputEmail"
+    <!--<input type="hidden" id="email_form"
+        value="{{(email | length) if email else 1}}">-->
+    {% if not email %}
+    <input type="text" class="form-control" id="inputEmail_0"
+                                                   name="inputEmail"
+                                                   placeholder="{{_('Enter email address.')}}"
+                                                   value=""></br>
+    {% endif %}
+    <!--<input type="text" class="form-control" id="inputEmail_0"
+                                                   name="inputEmail_0"
+                                                   placeholder="{{_('Enter email address.')}}"
+                                                   value=""></br>-->
+    {% for email in email%}
+      <input type="text" class="form-control" id="inputEmail_0"
                                                   name="inputEmail"
-                                                  placeholder="{{_('Enter email address.')}}" value={{
-                                                  email[-1].email_address if email }}></br>
-
+                                                  placeholder="{{_('Enter email address.')}}" 
+                                                  value={{email.email_address}}></br>
+    
+    {% endfor %}
   </div>
-  <div id="newEmail"></div>
+  <div id="newEmail" class="form-group" id="emailAdd"></div>
   </div>
   <div class="col-md-3"></div>
   <div class="form-actions col-md-8">
       <div class="col-md-2">
-        <button id="addEmail" class="btn btn-light add-big-button">
+        <a id="addEmail" class="btn btn-light add-big-button">
             <span class="glyphicon glyphicon-plus"></span>
                 {{_('Email Address')}}
-        </button>
+        </a>
       </div>
       <div class="col-md-4"></div>
       <div class="col-md-2">

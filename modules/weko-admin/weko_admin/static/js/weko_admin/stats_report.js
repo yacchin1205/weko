@@ -97,11 +97,20 @@ $(document).ready(function () {
   });
 
    $('#addEmail').on('click', function () {
-        moreEmail('id_'+$.now()); 
+       var addressRange = parseInt($('#email_address_length').val());
+
+   //    moreEmail(addressRange);
+   //    $('#email_address_length').val((addressRange + 1));
+        $(moreEmail(addressRange)).insertBefore('#removeEmail'+ addressRange);
+        $('#address_' + addressRange).append(' &nbsp;');
+        $('#email_address_length').val((addressRange + 1));
     });
 
     $('#saveEmail').on('click', function () {
-        var emailAdd = $('#inputEmail').val();
+         $('#email_form').submit();
+         var message = 'Successfully email address saved.';
+         addAlert(message);
+        /*var emailAdd = $('#inputEmail').val();
         
         $.ajax({
             url: "/api/stats/get_email_address",
@@ -118,18 +127,15 @@ $(document).ready(function () {
                 $("#inputModal").html(modalcontent);
                 $("#allModal").modal("show");
             }
-        })
-        //var message = 'Successfully email address saved.';
-        //addAlert(message);
+        });*/
     });
 
-    // $('#newEmail').on('click','#removeEmail_'+row_id,function(){
-        //page_global.table_row.splice($.inArray(row_id,page_global.table_row),1);
-    //$('#email_' + row_id).remove();
-        //initSortedBtn();
-    // });
     $('#removeEmail_'+row_id).on('click',function(){
-        $('#email_'+row_id).remove();
+        //$('#email_'+row_id).remove();
+
+        var addressRange = parseInt($('#email_address_length').val());
+        $('#removeEmail' + row_id).remove();
+        $('#email_address_length').val((addressRange - 1));
     });
 });
 
@@ -146,17 +152,19 @@ function addAlert(message) {
         '&times;</button>' + message + '</div>');
          }
 
-function moreEmail(row_id){
+function moreEmail(address_id){
+    var id = address_id;
     $('#newEmail').append(
-    '<div class="email_' + row_id + '">'
-    +'<div class="col-md-5 col-md-offset-3" id="emailAdd">'
-    +'<input type="text" class="form-control" id="inputEmail_' + row_id + '" name="inputEmail" placeholder="Enter email address." value=""></br>'
+    '<div class="col-md-5 col-md-offset-3" id="emailAdd">'
+    +'<input type="text" class="form-control" name="inputEmail" id="inputEmail_' + id + '"'
+    // +'<input type="text" class="form-control" name="inputEmail" id="inputEmail" name="inputEmail"'
+    +'placeholder="Enter email address." value=""></br>'
     +'</div>'
     +'<div class="col-md-1">'
-    +'<button class="btn-danger remove-button" id="removeEmail_' + row_id + '">'
+    +'<button class="btn-danger remove-button" id="remove_button_' + id + '">'
     +'<span class="glyphicon glyphicon-remove"></span>'
     +'</button>'
     +'</div>'
-    +'</div>'
+
     );
 }
