@@ -248,7 +248,7 @@ class ReportView(BaseView):
 
             return self.render(
                 current_app.config['WEKO_ADMIN_REPORT_TEMPLATE'],
-                email=all_emailAddress,
+                emails=all_emailAddress,
                 result=result,
                 now=datetime.utcnow())
         except Exception:

@@ -162,9 +162,9 @@
           ')}}</p>
   </div>
   <input type="hidden" id="email_address_length"
-                        value="{{(email | length) if email else 1}}">
+                        value="{{(emails | length) if emails else 1}}">
 
-  {% if not email %}
+  {% if not emails %}
   <div class="form-group col-md-5 col-md-offset-3">
         <input type="text" class="form-control" id="inputEmail_0"
                                                    name="inputEmail"
@@ -172,7 +172,7 @@
                                                    value=""></br>
   </div>
   {% endif %}
-  {% for email in email %}
+  {% for email in emails %}
    <div id="emailID_{{email.id}}">
         <div class="form-group col-md-5 col-md-offset-3">
             <input type="text" class="form-control" id="inputEmail_{{email.id}}"
@@ -180,14 +180,17 @@
                                                   placeholder="{{_('Enter email address.')}}" 
                                                   value={{email.email_address}}></br>
         </div>
-         
-        <div class="col-md-1">
-            <a class="btn-default remove-button"
-                onclick="$('#inputEmail_{{email.id}}').remove();"  id="remove_button">
-                <span class="glyphicon glyphicon-remove"></span>
-            </a>
-        </div>
-    
+       {% set limit = (emails | length) %}
+       {% if loop.index == 1 %}
+        <div class="col-md-1"></div>
+       {% else %}
+            <div class="col-md-1">
+                <a class="btn-default remove-button"
+                    onclick="$('#inputEmail_{{email.id}}').remove();"  id="remove_button">
+                    <span class="glyphicon glyphicon-remove"></span>
+                </a>
+            </div>
+       {% endif %}
    </div>
    {% endfor %}
   
