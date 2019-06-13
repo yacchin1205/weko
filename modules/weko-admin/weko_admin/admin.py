@@ -26,6 +26,7 @@ import json
 import os
 import sys
 import zipfile
+import re
 from datetime import datetime
 from io import BytesIO, StringIO
 
@@ -398,7 +399,10 @@ class ReportView(BaseView):
         current_app.logger.info(inputEmail)
         StatisticsEmail.delete_all_row()
         for input in inputEmail:
-            StatisticsEmail.insert_email_address(input)
+            if input:
+                match = re.match('^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', input)
+                if match:
+                    StatisticsEmail.insert_email_address(input)
         return redirect(url_for("report.index"))
 
     def all_email(self):

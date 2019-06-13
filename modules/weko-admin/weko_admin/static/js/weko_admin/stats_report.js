@@ -100,11 +100,44 @@ $(document).ready(function () {
          $(moreEmail());
     });
 
-    $('#saveEmail').on('click', function () {
+     $('#saveEmail').on('click', function () {
          $('#email_form').submit();
-         var message = 'Successfully email address saved.';
-         addAlert(message);
-    });
+         //var message = 'Successfully email address saved.';
+         //addAlert(message);
+         //var email = document.forms["email_form"]["inputEmail"].value;
+         //let email = $("#inputEmail").val();
+         /*var email = document.getElementsByName("inputEmail")[0].value;
+         alert(email);
+         if (email != 0)
+            {
+                $('#email_form').submit();
+                var message = 'Successfully email address saved.';
+                addAlert(message);
+                return true;
+            }
+         else
+            {
+                var modalcontent =  "Input field could not be blank.";
+                $("#inputModal").html(modalcontent);
+                $("#allModal").modal("show");
+                return false;
+            }
+        });*/
+      /* $.ajax({
+            url: "api/admin/get_email_address",
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify,
+            success: function () {
+                var success_message = 'Email address saved successfully';
+                addAlert(success_message);
+                },
+            error: function (error) {
+                console.log(error);
+                alert('Email address update action erroneously');
+                }
+        });*/
+        });
 });
 
 function setStatsReportSubmit(statsReports) {
@@ -125,8 +158,9 @@ function moreEmail(){
         $('#newEmail').append(
          '<div id="emailID">'
          +'<div class="col-md-5 col-md-offset-3" id="emailAdd">'
-         +'<input type="text" class="form-control" name="inputEmail" id="inputEmail"'
-         +'placeholder="Enter email address." value=""></br>'
+         +'<input type="email" class="form-control inputEmail" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"'
+         +' name="inputEmail" id="inputEmail"'
+         +'placeholder="Enter email address." value="" required/></br>'
          +'</div>'
          +'<div class="col-md-1">'
          +'<a class="btn-default remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">'
@@ -136,4 +170,29 @@ function moreEmail(){
          +'</div>'
     );
 }
-
+function IsEmpty(){
+  if(document.form['email_form'].inputEmail.value === "")
+  {
+    alert("empty");
+    return false;
+  }
+    return true;
+}
+    /*
+function required(){
+var empt = document.getElementsByName("inputEmail").val();
+    if (empt = 0)
+        {
+            var modalcontent =  "Input Field can not be blank.";
+            $("#inputModal").html(modalcontent);
+            $("#allModal").modal("show");
+            return false;
+        }
+    else
+        {
+            $('#email_form').submit();
+            var message = 'Successfully email address saved.';
+            addAlert(message);
+            return true;
+        } 
+}*/
