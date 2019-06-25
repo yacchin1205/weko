@@ -29,7 +29,7 @@
           <col width="50">
           {%- for nav in record.navi -%}
           <tr>
-            <td valign="bottom">
+            <td style="max-width: 100%; white-space: nowrap;" valign="bottom">
               {%- if loop.index == 1 %}
               <h4 style="display: inline;">{{_('Index')}}</h4>
               {%- endif %}
@@ -43,10 +43,11 @@
                   {%- for n in name -%}
                   {%- if community_id%}
                   <li><a
-                      href={{url_for("invenio_search_ui.search")+"?search_type=2&q="+p[loop.index-1]+"&community="+community_id}}>{{n}}</a>
+                      href={{url_for("invenio_search_ui.search")+"?search_type=2&q="+p[loop.index-1]+"&community="+community_id}}>{{_(n)}}</a>
                   </li>
                   {%-else%}
-                  <li><a href={{url_for("invenio_search_ui.search")+"?search_type=2&q="+p[loop.index-1]}}>{{n}}</a></li>
+                  <li><a
+                          href={{url_for("invenio_search_ui.search")+"?search_type=2&q="+p[loop.index-1]}}>{{_(n)}}</a></li>
                   {%- endif -%}
                   {%- endfor -%}
                 </ol>
