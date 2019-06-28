@@ -175,18 +175,6 @@ function moreEmail(){
 
   document.getElementById('newEmail').appendChild(removableEmailField);
 
-  // <div id="emailID">
-  //   <div class="col-md-5 col-md-offset-3" id="emailAdd">
-  //     <input type="email" class="form-control inputEmail" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" name="inputEmail" id="inputEmail" placeholder="Enter email address." value="" required/>
-  //     <br/>
-  //   </div>
-  //   <div class="col-md-1">
-  //     <a class="btn-default remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">
-  //       <span class="glyphicon glyphicon-remove"></span>
-  //     </a>
-  //   </div>
-  // </div>
-
 }
 
 function IsEmpty(){

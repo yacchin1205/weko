@@ -904,7 +904,6 @@ class StatisticsEmail(db.Model):
         try:
             with db.session.begin_nested():
                 cls.query.delete()
-
             db.session.commit()
         except Exception as ex:
             current_app.logger.debug(ex)
