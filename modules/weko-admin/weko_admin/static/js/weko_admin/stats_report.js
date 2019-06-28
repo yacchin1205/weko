@@ -1,3 +1,4 @@
+
 $(document).ready(function () {
   var fileDownloadURL = '/admin/report/stats_file_tsv';
   $('#downloadReport').on('click', function () {
@@ -66,7 +67,12 @@ $(document).ready(function () {
   });
 
   $('#addEmail').on('click', function () {
-        $(moreEmail());
+      if (document.getElementById('email_form').checkValidity()) {
+        moreEmail();
+      }
+      else {
+        addAlert('Please check email input fields.');
+      }
    });
 
   $('#saveEmail').on('click', function () {
@@ -99,27 +105,88 @@ function setStatsReportSubmit(statsReports) {
 }
 
 function addAlert(message) {
-    $('#alerts').append(
-        '<div class="alert alert-light" id="alert-style">' +
-        '<button type="button" class="close" data-dismiss="alert">' +
-        '&times;</button>' + message + '</div>');
+  
+  let flashMessage = document.createElement('div');
+  for (let className of ['alert', 'alert-info', 'alert-dismissable']) {
+    flashMessage.classList.add(className);
+  }
+
+  flashMessage.textContent = message;
+  
+  let dismissButton = document.createElement('button');
+  dismissButton.type = 'button';
+  dismissButton.classList.add('close');
+  dismissButton.dataset.dismiss = 'alert';
+  dismissButton.textContent = 'x';
+
+  flashMessage.appendChild(dismissButton);
+
+  let contentHeader = document.getElementsByClassName('content-header')[0]
+  contentHeader.insertBefore(flashMessage, contentHeader.firstChild)
+
 }
 
 function moreEmail(){
-  $('#newEmail').append(
-       '<div id="emailID">'
-       +'<div class="col-md-5 col-md-offset-3" id="emailAdd">'
-       +'<input type="email" class="form-control inputEmail" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"'
-       +' name="inputEmail" id="inputEmail"'
-       +'placeholder="Enter email address." value="" required/></br>'
-       +'</div>'
-       +'<div class="col-md-1">'
-       +'<a class="btn-default remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">'
-       +'<span class="glyphicon glyphicon-remove"></span>'
-       +'</a>'
-       +'</div>'
-       +'</div>'
-  );
+
+  let removableEmailField = document.createElement('div');
+
+  let emailInputDiv = document.createElement('div');
+  emailInputDiv.classList.add('col-md-5');
+  emailInputDiv.classList.add('col-md-offset-3');
+
+  let emailInput = document.createElement('input');
+  emailInput.type = 'email';
+  emailInput.classList.add('form-control');
+  emailInput.classList.add('inputEmail');
+  emailInput.pattern = '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$';
+  emailInput.name = 'inputEmail';
+  emailInput.id = 'inputEmail';
+  emailInput.placeholder = 'Enter email address.';
+  emailInput.required = true;
+
+  let mainEmailInput = document.getElementById('inputEmail_0');
+  emailInput.value = mainEmailInput.value;
+  mainEmailInput.value = '';
+
+  let lineBreak = document.createElement('br');
+
+  emailInputDiv.appendChild(emailInput);
+  emailInputDiv.appendChild(lineBreak);
+  removableEmailField.appendChild(emailInputDiv);
+
+  let deleteButtonDiv = document.createElement('div');
+  deleteButtonDiv.classList.add('col-md-1');
+
+  let deleteButtonLink = document.createElement('a');
+  deleteButtonLink.classList.add('btn-default');
+  deleteButtonLink.classList.add('remove-button');
+  deleteButtonLink.addEventListener('click', function() {
+    removableEmailField.parentElement.removeChild(removableEmailField);
+  });
+  
+  let deleteButtonSpan = document.createElement('span');
+  deleteButtonSpan.classList.add('glyphicon');
+  deleteButtonSpan.classList.add('glyphicon-remove');
+
+  deleteButtonLink.appendChild(deleteButtonSpan);
+  deleteButtonDiv.appendChild(deleteButtonLink);
+  removableEmailField.appendChild(deleteButtonDiv);
+
+
+  document.getElementById('newEmail').appendChild(removableEmailField);
+
+  // <div id="emailID">
+  //   <div class="col-md-5 col-md-offset-3" id="emailAdd">
+  //     <input type="email" class="form-control inputEmail" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" name="inputEmail" id="inputEmail" placeholder="Enter email address." value="" required/>
+  //     <br/>
+  //   </div>
+  //   <div class="col-md-1">
+  //     <a class="btn-default remove-button" onclick="$(\'#emailID\').remove();"  id="remove_button">
+  //       <span class="glyphicon glyphicon-remove"></span>
+  //     </a>
+  //   </div>
+  // </div>
+
 }
 
 function IsEmpty(){
