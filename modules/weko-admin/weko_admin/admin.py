@@ -373,7 +373,7 @@ class ReportView(BaseView):
                     StatisticsEmail.insert_email_address(input)
                 else:
                     alert_msg = 'Please check email input fields.'
-        flash(_(alert_msg))
+        flash(_(alert_msg), category='error')
         return redirect(url_for("report.index"))
 
 

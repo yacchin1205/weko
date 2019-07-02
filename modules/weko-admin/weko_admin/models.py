@@ -903,7 +903,7 @@ class StatisticsEmail(db.Model):
         """Delete all."""
         try:
             with db.session.begin_nested():
-                cls.query.delete()
+                delete_all = cls.query.delete()
             db.session.commit()
         except Exception as ex:
             current_app.logger.debug(ex)

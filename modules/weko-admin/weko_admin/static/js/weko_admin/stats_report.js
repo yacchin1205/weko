@@ -105,14 +105,14 @@ function setStatsReportSubmit(statsReports) {
 }
 
 function addAlert(message) {
-  
+
   let flashMessage = document.createElement('div');
-  for (let className of ['alert', 'alert-info', 'alert-dismissable']) {
+  for (let className of ['alert', 'alert-error', 'alert-dismissable']) {
     flashMessage.classList.add(className);
   }
 
   flashMessage.textContent = message;
-  
+
   let dismissButton = document.createElement('button');
   dismissButton.type = 'button';
   dismissButton.classList.add('close');
@@ -163,7 +163,7 @@ function moreEmail(){
   deleteButtonLink.addEventListener('click', function() {
     removableEmailField.parentElement.removeChild(removableEmailField);
   });
-  
+
   let deleteButtonSpan = document.createElement('span');
   deleteButtonSpan.classList.add('glyphicon');
   deleteButtonSpan.classList.add('glyphicon-remove');
