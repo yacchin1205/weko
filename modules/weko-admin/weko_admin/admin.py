@@ -365,6 +365,7 @@ class ReportView(BaseView):
         inputEmail = request.form.getlist('inputEmail')
         StatisticsEmail.delete_all_row()
         alert_msg = 'Successfully saved email addresses.'
+        category = 'info'
         for input in inputEmail:
             if input:
                 match = re.match(
@@ -373,7 +374,8 @@ class ReportView(BaseView):
                     StatisticsEmail.insert_email_address(input)
                 else:
                     alert_msg = 'Please check email input fields.'
-        flash(_(alert_msg), category='error')
+                    category = 'error'
+        flash(_(alert_msg), category=category)
         return redirect(url_for("report.index"))
 
 

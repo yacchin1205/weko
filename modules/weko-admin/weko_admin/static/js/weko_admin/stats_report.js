@@ -76,8 +76,21 @@ $(document).ready(function () {
    });
 
   $('#saveEmail').on('click', function () {
+      // save invalid address if entered
+      if (!document.getElementById('email_form').checkValidity()) {
+        let invalidInput = document.getElementById('inputEmail_0').value;
+        localStorage.setItem('invalidInput', invalidInput);
+      }
       $('#email_form').submit();
   });
+
+  // load invalid address if saved
+  let invalidInput = localStorage.getItem('invalidInput');
+  if (invalidInput) {
+    document.getElementById('inputEmail_0').value = invalidInput;
+    // one time only
+    localStorage.setItem('invalidInput', '');
+  }
 });
 
 function ajaxGetTSV(endpoint) {
