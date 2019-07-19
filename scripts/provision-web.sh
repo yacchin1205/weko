@@ -78,7 +78,7 @@ provision_web_common_ubuntu14 () {
          libtiff-dev \
          libxml2-dev \
          libxslt-dev \
-         nodejs \
+         nodejs=4.9.1-1nodesource1 \
          python-dev \
          python-pip
     # sphinxdoc-install-web-common-ubuntu14-end
