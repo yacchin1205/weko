@@ -63,9 +63,9 @@ provision_web_common_ubuntu14 () {
     # sphinxdoc-install-useful-system-tools-ubuntu14-end
 
     # sphinxdoc-add-nodejs-external-repository-ubuntu14-begin
-    if [[ ! -f /etc/apt/sources.list.d/nodesource.list ]]; then
-        curl -sL https://deb.nodesource.com/setup_4.x | $sudo bash -
-    fi
+    # if [[ ! -f /etc/apt/sources.list.d/nodesource.list ]]; then
+    curl -sL https://deb.nodesource.com/setup_4.x | $sudo bash -
+    # fi
     # sphinxdoc-add-nodejs-external-repository-ubuntu14-end
 
     # sphinxdoc-install-web-common-ubuntu14-begin
@@ -78,7 +78,7 @@ provision_web_common_ubuntu14 () {
          libtiff-dev \
          libxml2-dev \
          libxslt-dev \
-         nodejs=4.9.1-1nodesource1 \
+         nodejs \
          python-dev \
          python-pip
     # sphinxdoc-install-web-common-ubuntu14-end
