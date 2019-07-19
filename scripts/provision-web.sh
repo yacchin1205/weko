@@ -63,6 +63,7 @@ provision_web_common_ubuntu14 () {
     # sphinxdoc-install-useful-system-tools-ubuntu14-end
 
     # sphinxdoc-add-nodejs-external-repository-ubuntu14-begin
+    #
     # if [[ ! -f /etc/apt/sources.list.d/nodesource.list ]]; then
     curl -sL https://deb.nodesource.com/setup_4.x | $sudo bash -
     # fi
