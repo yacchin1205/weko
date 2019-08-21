@@ -708,7 +708,7 @@ const TableResendErrorComponent = function(props){
         {generateBodyTableUser()}
       </table>
       <div className = "row">
-        <PaginationResendLogsTable bindURL = {GET_FAILED_MAIL_URL} bindID = {props.bindID} bindNumOfPage = {numOfPage} bindGetData = {getData}/>
+        <PaginationResendLogsTable bindURL = {GET_FAILED_MAIL_URL} bindID = {props.bindID} bindNumOfPage = {numOfPage} bindGetData = {getData} bindIndex = {currentIndex}/>
       </div>
     </div>
   )
@@ -719,6 +719,10 @@ const PaginationResendLogsTable = function(props){
   const[startPage, setStartPage] = useState(1);
   const[endPage, setEndPage] = useState(1);
   const[currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(props.bindIndex + 1);
+  }, [props.bindIndex]);
 
   useEffect(() => {
     setNumOfPage(props.bindNumOfPage);
@@ -929,6 +933,7 @@ const ComponentLogsTable = function(props){
             return;
           }
           setNumOfPage(result.total_page);
+          setIndex(result.selected_page - 1);
           setData(result.data);
           setRecordsPerPage(result.records_per_page);
         })
@@ -984,7 +989,7 @@ const ComponentLogsTable = function(props){
       </table>
       {data.length ?
       <div className = "row">
-        <PaginationResendLogsTable bindURL={GET_SEND_MAIL_HISTORY_URL} bindNumOfPage = {numOfPage} bindGetData = {getData}/>
+        <PaginationResendLogsTable bindURL={GET_SEND_MAIL_HISTORY_URL} bindNumOfPage = {numOfPage} bindGetData = {getData} bindIndex = {currentIndex} />
       </div> : null}
     </div>
   )
