@@ -478,10 +478,10 @@ function getWidgetDesignSetting() {
 }
 
 function toggleWidgetUI() {
+    $('footer#footer').css("display", "block");
+    $('footer-fix#footer').remove();
     $("div#page_body").each(function () {
         $(this).css("display", "block");
-        $('footer#footer').css("display", "block");
-        $('footer-fix#footer').remove();
     });
 }
 
