@@ -161,6 +161,7 @@ class WorkFlowSettingView(BaseView):
         itemtype_list = ItemTypes.get_latest()
         flow_api = Flow()
         flow_list = flow_api.get_flow_list()
+        
         if '0' == workflow_id:
             """Create new workflow"""
             return self.render(
