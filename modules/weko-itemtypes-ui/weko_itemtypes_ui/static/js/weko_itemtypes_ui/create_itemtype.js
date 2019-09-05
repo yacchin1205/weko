@@ -28,6 +28,39 @@ $(document).ready(function () {
     "spase_mapping": ""
   }
 
+  meta_system_info = {
+      updated_date : {
+        title : "Updated Date",
+        title_i18n: {ja: "更新日時", en: "Updated Date"},
+        input_type: "cus_70"
+      },
+      created_date : {
+        title: "Created Date",
+        title_i18n: {ja: "作成日時", en: "Created Date"},
+        input_type: "cus_70"
+      },
+      persistent_identifier_doi : {
+        input_type: "cus_120",
+        title: "Persistent Identifier(DOI)",
+        title_i18n: {ja: "永続識別子（DOI）", en: "Persistent Identifier(DOI)"},
+      },
+      persistent_identifier_h : {
+        input_type: "cus_81",
+        title: "Persistent Identifier(Handle)",
+        title_i18n: {ja: "永続識別子（ハンドル）", en: "Persistent Identifier(Handle)"}
+      },
+      ranking_page_url : {
+        input_type: "text",
+        title: "Ranking Page URL",
+        title_i18n: {ja: "ランディングページのURL", en: "Ranking Page URL"},
+      },
+      belonging_index_info : {
+        input_type: "text",
+        title: "Belonging Index Info",
+        title_i18n: {ja: "所属インデックスの情報", en: "Belonging Index Info"},
+      },
+    }
+
   $('#myModal').modal({
     show: false
   })
@@ -545,6 +578,7 @@ $(document).ready(function () {
     tmp_pubdate.option.showlist = tmp_pubdate.option.hidden ? false : ($('#chk_pubdate_2').is(':checked') ? true : false);
     tmp_pubdate.option.crtf = tmp_pubdate.option.hidden ? false : ($('#chk_pubdate_3').is(':checked') ? true : false);
     page_global.meta_fix["pubdate"] = tmp_pubdate;
+    page_global.meta_system = add_meta_system()
   }
 
   // add new meta table row
@@ -950,5 +984,26 @@ $(document).ready(function () {
         handleError(textStatus);
       }
     });
+  }
+
+  function add_meta_system(){
+    var result = {}
+    Object.keys(meta_system_info).forEach(function(key){
+      var option = {
+        required : $('#chk_'+key+'_0').is(':checked') ? true : false,
+        multiple : $('#chk_'+key+'_1').is(':checked') ? true : false,
+        hidden : $('#chk_'+key+'_4').is(':checked') ? true : false,
+        showlist : ($('#chk_'+key+'_4').is(':checked') ? true : false) ? false : $('#chk_'+key+'_2').is(':checked') ? true : false,
+        crtf : ($('#chk_'+key+'_4').is(':checked') ? true : false) ? false : $('#chk_'+key+'_3').is(':checked') ? true : false,
+      }
+      result[key] = {
+        title : meta_system_info[key].title,
+        title_i18n : meta_system_info[key].title_i18n,
+        input_type : meta_system_info[key].input_type,
+        input_value : "",
+        option : option
+      }
+    })
+    return result
   }
 });
