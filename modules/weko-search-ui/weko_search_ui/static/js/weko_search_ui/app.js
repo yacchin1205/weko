@@ -113,8 +113,6 @@ function searchResCtrl($scope, $rootScope, $http, $location) {
     var url = new URL(window.location.href );
     var q = url.searchParams.get("q");
     let result = 'item'
-    console.log("url",url)
-    console.log("url",q)
     if (q === "0") {
         return 'root'
     }
