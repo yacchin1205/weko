@@ -97,8 +97,7 @@ def delete_records(index_tree_id):
                 indexer = WekoIndexer()
                 indexer.update_path(record, update_revision=False)
 
-                if len(paths) == 0 and removed_path is not None:
-                    from weko_deposit.api import WekoDeposit
+                if len(paths) == 0 and removed_path:
                     WekoDeposit.delete_by_index_tree_id(removed_path)
                     Record.get_record(recid).delete()  # flag as deleted
                     db.session.commit()  # terminate the transaction
@@ -541,6 +540,8 @@ def get_item_type(item_type_id=0) -> dict:
 
     return result
 
+from invenio_pidstore.errors import PIDDoesNotExistError
+
 
 def handle_check_exist_record(list_recond) -> list:
     """Check record is exist in system.
@@ -573,6 +574,10 @@ def handle_check_exist_record(list_recond) -> list:
                     else:
                         item['status'] = 'new'
                         check_identifier_new(item)
+                except PIDDoesNotExistError:
+                    current_app.logger.error('-' * 60)
+                    traceback.print_exc(file=sys.stdout)
+                    current_app.logger.error('-' * 60)
                 except BaseException:
                     current_app.logger.error('Unexpected error: ',
                                              sys.exc_info()[0])
@@ -669,11 +674,10 @@ def compare_identifier(item, item_exist):
             item['metadata'][item.get('Identifier key')] = item_exist_iden
     return item
 
-
+import csv
+from io import StringIO
 def make_stats_tsv(raw_stats):
     """Make TSV report file for stats."""
-    import csv
-    from io import StringIO
     tsv_output = StringIO()
 
     writer = csv.writer(tsv_output, delimiter='\t',
@@ -724,7 +728,7 @@ def check_identifier_new(item):
     return item
 
 
-def create_deposit(rids):
+def create_deposit(recids):
     """Create deposit.
 
     :argument
@@ -732,21 +736,16 @@ def create_deposit(rids):
         item_exist     -- {dict} item in system.
 
     """
-    from invenio_db import db
-    from weko_deposit.api import WekoDeposit
-    try:
-        for rid in rids:
-            try:
-                WekoDeposit.create({}, recid=int(rid))
-                db.session.commit()
-                current_app.logger.info('Deposit id: %s created.' % rid)
-            except Exception as ex:
-                current_app.logger.error(
-                    'Error occurred during creating deposit id: %s' % rid)
-                current_app.logger.info(str(ex))
-                db.session.rollback()
-    except BaseException:
-        current_app.logger.error('Unexpected error: ', sys.exc_info()[0])
+    for recid in recids:
+        try:
+            with db.session.begin_nested():
+                WekoDeposit.create({}, id_=uuid.uuid4(), recid=int(recid))
+                current_app.logger.info('Deposit id: %s created.' % recid)
+            db.session.commit()
+        except Exception as ex:
+            current_app.logger.error('Error occurred during creating deposit'
+                'id: %s' % recid)
+            current_app.logger.info(str(ex))
 
 
 def up_load_file_content(list_record, file_path):
@@ -795,7 +794,7 @@ def get_file_name(file_path):
     """
     return file_path.split('/')[-1] if file_path.split('/')[-1] else ''
 
-
+from weko_workflow.utils import merge_buckets_by_records
 def register_item_metadata(list_record):
     """Upload file content.
 
@@ -819,14 +818,16 @@ def register_item_metadata(list_record):
                     pid_type='recid',
                     pid_value=item_id
                 ).first()
-                r = RecordMetadata.query.filter_by(
-                    id=pid.object_uuid).first()
-                _depisit_data = r.json.get('_deposit')
-                dep = WekoDeposit(r.json, r)
-                #
+                # r = RecordMetadata.query.filter_by(
+                #     id=pid.object_uuid).first()
+
+                record = WekoDeposit.get_record(pid.object_uuid)
+
+                _deposit_data = record.dumps().get("_deposit")
+                deposit = WekoDeposit(record, record.model)
                 new_data = dict(
                     **data.get('metadata'),
-                    **_depisit_data,
+                    **_deposit_data,
                     **{
                         '$schema': data.get('$schema'),
                         'title': handle_get_title(data.get('Title')),
@@ -840,20 +841,27 @@ def register_item_metadata(list_record):
                             'value': item_id
                         }
                     })
-                dep.update(item_status, new_data)
-                dep.commit()
-                dep.publish()
+                deposit.update(item_status, new_data)
+                deposit.commit()
+                deposit.publish()
                 handle_workflow(data)
                 with current_app.test_request_context():
-                    first_ver = dep.newversion(pid)
+                    first_ver = deposit.newversion(pid)
                     first_ver.publish()
+                record_bucket_id = merge_buckets_by_records(
+                    pid.object_uuid,
+                    _deposit_data.get("id"),
+                    sub_bucket_delete=True
+                )
                 db.session.commit()
-
                 success_count += 1
             except Exception as ex:
                 db.session.rollback()
                 current_app.logger.error('item id: %s update error.' % item_id)
-                current_app.logger.error(ex)
+                # current_app.logger.error(ex)
+                current_app.logger.error('-' * 60)
+                traceback.print_exc(file=sys.stdout)
+                current_app.logger.error('-' * 60)
                 failure_list.append(item_id)
         current_app.logger.info('%s items updated.' % success_count)
         current_app.logger.info('failure list:')
@@ -944,6 +952,43 @@ def create_flow_define():
     flow = the_flow.create_flow(WEKO_FLOW_DEFINE)
     the_flow.upt_flow_action(flow.flow_id, WEKO_FLOW_DEFINE_LIST_ACTION)
 
+
+# def import_items_to_system(data: dict):
+#     """Validation importing zip file.
+
+#     :argument
+#         file_content     -- {string} 'doi' (default) or 'cnri'.
+#     :return
+#         return       -- PID object if exist.
+
+#     """
+#     records = data.get('list_record')
+#     records = [item for item in records if not item.get(
+#         'errors')]
+
+#     new_recids = [
+#         item.get('id', None)
+#         for item in records if item.get('status') == 'new'
+#     ]
+#     update_recids = [
+#         item.get('id', None)
+#         for item in records if item.get('status') == 'update'
+#     ]
+
+#     # current_app.logger.debug(records)
+#     # current_app.logger.debug(new_recids)
+#     # current_app.logger.debug(update_recids)
+
+#     if new_recids:
+#         create_deposit(new_recids)
+#         response = register_item_metadata(records)
+#     # file_path = data.get('root_path')
+#     # up_load_file_content(records, file_path)
+
+#     # Remove tempDir
+#     # shutil.rmtree(str(file_path.replace("/data", "")))
+#     # return response
+#     return response
 
 def import_items_to_system(data: dict):
     """Validation importing zip file.

@@ -439,6 +439,8 @@ def iframe_items_index(pid_value='0'):
             comm = GetCommunity.get_community_by_id(community_id)
             ctx = {'community': comm}
 
+        current_app.logger.debug('=====================================')
+        current_app.logger.debug(request.method)
         if request.method == 'GET':
             # Get the design for widget rendering
             from weko_theme.utils import get_design_layout
@@ -792,10 +794,15 @@ def prepare_edit_item():
                 item_id
             )
             if not workflow_activity:
-                # get workflow of first record attached version ID: x.1
+                # current_app.logger.debug(ItemTypes.get_records_by_name_id(item_type.name_id))
                 workflow_activity = activity.get_workflow_activity_by_item_id(
                     pid_object.object_uuid
                 )
+                # if not workflow_activity:
+                #     from weko_workflow.api import Workflow
+                #     workflow_list = Workflow.get_workflow_list()
+                #     for workflow in workflow_list:
+                #     get_workflow_activity_by_workflow_id
                 if not workflow_activity:
                     return jsonify(
                         code=-1,
@@ -920,6 +927,10 @@ def prepare_edit_item():
                                data={'redirect': url_redirect})
 
         except Exception as e:
+            # import traceback
+            # current_app.logger.error('-' * 60)
+            # traceback.print_exc(file=sys.stdout)
+            # current_app.logger.error('-' * 60)
             current_app.logger.error('Unexpected error: ', str(e))
     return jsonify(code=-1, msg=_('An error has occurred.'))
 

@@ -454,6 +454,18 @@ class WekoDeposit(Deposit):
                     'email': current_user.email
                 }
 
+        if data.get('_deposit'):
+            record_id = str(data['_deposit']['id'])
+        else:
+            record_id = recid
+        parent_pid = PersistentIdentifier.create(
+            'parent',
+            'parent:{0}'.format(record_id),
+            object_type='rec',
+            object_uuid=id_,
+            status=PIDStatus.REGISTERED
+        )
+
         if recid:
             deposit = super(WekoDeposit, cls).create(
                 data,
@@ -462,16 +474,6 @@ class WekoDeposit(Deposit):
             )
         else:
             deposit = super(WekoDeposit, cls).create(data, id_=id_)
-
-        if data.get('_deposit'):
-            record_id = str(data['_deposit']['id'])
-        parent_pid = PersistentIdentifier.create(
-            'parent',
-            'parent:{0}'.format(record_id),
-            object_type='rec',
-            object_uuid=id_,
-            status=PIDStatus.REGISTERED
-        )
 
         RecordsBuckets.create(record=deposit.model, bucket=bucket)
 
@@ -1044,9 +1046,16 @@ class WekoRecord(Record):
 
     @classmethod
     def get_record_by_pid(cls, pid):
-        """Get record by pid."""
-        pid = PersistentIdentifier.get('depid', pid)
-        return cls.get_record(id_=pid.object_uuid)
+        """Get record by pid value."""
+        with db.session.no_autoflush:
+            pid_object = PersistentIdentifier.query.filter_by(
+                pid_type='depid',
+                pid_value=str(pid)
+            ).one_or_none()
+            if pid_object:
+                return cls.get_record(id_=pid_object.object_uuid)
+            else:
+                return pid_object
 
     @classmethod
     def get_record_with_hps(cls, uuid):

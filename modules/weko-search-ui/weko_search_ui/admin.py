@@ -27,6 +27,7 @@ from blinker import Namespace
 from flask import Response, abort, current_app, jsonify, make_response, request
 from flask_admin import BaseView, expose
 from flask_babelex import gettext as _
+from flask_login import login_required
 from invenio_db import db
 from weko_index_tree.api import Indexes
 from weko_index_tree.models import IndexStyle
@@ -222,6 +223,7 @@ class ItemImportView(BaseView):
             workflows=json.dumps(workflows_js)
         )
 
+    @login_required
     @expose('/check', methods=['POST'])
     def check(self) -> jsonify:
         """Register an item type mapping."""
