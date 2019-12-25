@@ -265,21 +265,26 @@ def mapping():
     prefix_settings = AuthorsPrefixSettings.query.all()
     id_type_dict = {}
     for prefix in prefix_settings:
-        id_type_dict[prefix.id] = prefix.name
+        detail_info = {}
+        detail_info['name'] = prefix.name
+        detail_info['url'] = prefix.url
+        id_type_dict[prefix.id] = detail_info
 
     id_info = result.get('_source').get('authorIdInfo')
     for j in id_info:
         try:
-            id_scheme = id_type_dict[int(j['idType'])]
+            id_scheme = id_type_dict[int(j['idType'])]['name']
+            id_url = id_type_dict[int(j['idType'])]['url']
             if id_scheme == 'KAKEN2':
                 id_scheme = 'kakenhi'
         except KeyError:
             id_scheme = ''
+            id_url = ''
 
         if j.get('authorIdShowFlg') == 'true':
             tmp = {'nameIdentifier': j.get('authorId'),
                    'nameIdentifierScheme': id_scheme,
-                   'nameIdentifierURI': ''}
+                   'nameIdentifierURI': id_url}
             res['nameIdentifiers'].append(tmp)
 
     # remove empty element
