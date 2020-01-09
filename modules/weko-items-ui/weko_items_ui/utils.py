@@ -830,16 +830,17 @@ def get_list_file_by_record_id(recid):
     return list_file_name
 
 
+def rename_filename(name):
+    """Rename the file name if there are disallowed characters."""
+    new_name = re.sub(r'[\/:*"<>|\s]', '_', name)
+    return new_name
+
+
 def export_items(post_data):
     """Gather all the item data and export and return as a JSON or BIBTEX.
 
     :return: JSON, BIBTEX
     """
-    def check_item_type_name(name):
-        """Check a list of allowed characters in filenames."""
-        new_name = re.sub(r'[\/:*"<>|\s]', '_', name)
-        return new_name
-
     include_contents = True if \
         post_data['export_file_contents_radio'] == 'True' else False
     export_format = post_data['export_format_radio']
@@ -876,8 +877,7 @@ def export_items(post_data):
             item_type_id = exported_item.get('item_type_id')
             item_type = ItemTypes.get_by_id(item_type_id)
             if not item_types_data.get(item_type_id):
-                item_type_name = check_item_type_name(
-                    item_type.item_type_name.name)
+                item_type_name = rename_filename(item_type.item_type_name.name)
                 item_types_data[item_type_id] = {
                     'item_type_id': item_type_id,
                     'name': '{}({})'.format(
