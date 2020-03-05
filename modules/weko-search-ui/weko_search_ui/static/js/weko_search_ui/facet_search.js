@@ -45,10 +45,11 @@ class MainLayout extends React.Component {
       url.pathname = '/api/index/'
     }
     $.ajax({
+        context: this,
         url: url.href,
         type: 'GET',
         contentType: 'application/json; charset=UTF-8',
-        success: function(res) {
+        success: function (res) {
             if (url.searchParams.has('search_type') && String(url.searchParams.get('search_type')) === "2") {
     //          Index faceted search
               const data = res && res.aggregations && res.aggregations.path && res.aggregations.path.buckets && res.aggregations.path.buckets[0] ? res.aggregations.path.buckets[0] : {}
