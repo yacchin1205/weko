@@ -204,7 +204,7 @@ let PageBodyGrid = function () {
             let community_id = $("#community-id").text();
             if (node.type === HEADER_TYPE && community_id) {
               this.addNewWidget(node, i);
-            } else if (![MAIN_CONTENT_TYPE, HEADER_TYPE].includes(node.type)) {
+            } else if ([MAIN_CONTENT_TYPE, HEADER_TYPE].indexOf(node.type) == -1) {
               this.addNewWidget(node, i);
             }
         }
@@ -322,7 +322,7 @@ let PageBodyGrid = function () {
                   }
                 }
 
-                if (mainLayoutTitle === "" && Array.isArray(settings.menu_show_pages) && settings.menu_show_pages.includes("0")) {
+                if (mainLayoutTitle === "" && Array.isArray(settings.menu_show_pages) && settings.menu_show_pages.indexOf("0") > -1) {
                     mainLayoutTitle = "Main Layout";
                 }
 
