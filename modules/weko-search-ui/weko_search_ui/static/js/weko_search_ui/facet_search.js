@@ -71,7 +71,7 @@ class MainLayout extends React.Component {
     let new_data = {}
     if (data) {
       Object.keys(data).map(function (name, k)  {
-        if (list_name_facet.includes(name)) {
+        if (list_name_facet.indexOf(name)== -1) {
           let item = data[name]
           if (item[name]) {
             item = item[name]
@@ -100,10 +100,10 @@ class MainLayout extends React.Component {
 
   handleCheck(params, value) {
     let url = new URL(window.location.href)
-    if (url.searchParams.has(params) && url.searchParams.getAll(params).includes(value)) {
+    if (url.searchParams.has(params) && url.searchParams.getAll(params).indexOf(value)== -1) {
       let new_value = url.searchParams.getAll(params).filter(i => i !== value)
       url.searchParams.delete(params)
-      new_value.map(v => { url.searchParams.append(params, v) })
+      new_value.map(function (v) { url.searchParams.append(params, v) })
     } else {
       url.searchParams.append(params, value)
     }
@@ -119,7 +119,7 @@ class MainLayout extends React.Component {
       <div>
         {is_enable && <div className="facet-search">
           {
-            Object.keys(list_facet).map((name, key) => {
+            Object.keys(list_facet).map(function(name, key) {
               const item = list_facet[name]
               return (
                 <div className="panel panel-default" key={key}>
@@ -128,8 +128,8 @@ class MainLayout extends React.Component {
                   </div>
                   <div className="panel-body index-body">
                     {
-                      item.buckets && item.buckets.map((subitem, k) => {
-                        const value = url.searchParams.getAll(name).includes(subitem.key) ? true : false
+                      item.buckets && item.buckets.map(function(subitem, k) {
+                        const value = url.searchParams.getAll(name).indexOf(subitem.key)== -1 ? true : false
                         return (
                           <label>
                             <input
