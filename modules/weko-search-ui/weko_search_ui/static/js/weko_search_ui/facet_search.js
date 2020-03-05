@@ -68,7 +68,12 @@ class MainLayout extends React.Component {
 
   convertData(data) {
     const list_name_facet = ["accessRights", "dataType", "distributor", "language"]
-    let new_data = {}
+    let new_data = {
+        accessRights : {},
+        dataType : {},
+        distributor : {},
+        language : {}
+      }
     if (data) {
       Object.keys(data).map(function (name, k)  {
         if (list_name_facet.indexOf(name)>=0) {
@@ -79,14 +84,6 @@ class MainLayout extends React.Component {
           new_data[name] = item
         }
       })
-    }
-    else {
-      new_data = {
-        accessRights : {},
-        dataType : {},
-        distributor : {},
-        language : {}
-      }
     }
 
     this.setState({
