@@ -411,7 +411,8 @@ let PageBodyGrid = function () {
                 widgetId = Number(node.widget_id);
             }
             content = this.buildAccessCounter(widgetId, node.created_date, languageDescription);
-            setInterval(function() { return this.setAccessCounterValue(); }, INTERVAL_TIME);
+            var _this = this;
+            setInterval(function() { return _this.setAccessCounterValue(); }, INTERVAL_TIME);
         } else if (node.type === NEW_ARRIVALS) {
             let innerID = 'new_arrivals' + '_' + index;
             id = 'id="' + innerID + '"';
