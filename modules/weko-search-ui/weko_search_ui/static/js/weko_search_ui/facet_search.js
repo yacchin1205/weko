@@ -96,7 +96,6 @@ class MainLayout extends React.Component {
   }
 
   handleCheck(params, value) {
-    console.log("toi day")
     let url = new URL(window.location.href)
     if (url.searchParams.has(params) && url.searchParams.getAll(params).indexOf(value)>=0) {
       let new_value = url.searchParams.getAll(params).filter(function (i)  {return i !== value})
@@ -106,7 +105,6 @@ class MainLayout extends React.Component {
       url.searchParams.append(params, value)
     }
     let new_url = new URL(window.location.origin + "/search")
-    console.log("new_url.search",new_url.search)
 
     new_url.search = url.search;
     window.location.href = new_url.href
@@ -115,6 +113,7 @@ class MainLayout extends React.Component {
   render() {
     const { is_enable, list_facet } = this.state
     const url = new URL(window.location.href)
+    const that = this
     return (
       <div>
         {is_enable && <div className="facet-search">
@@ -135,7 +134,7 @@ class MainLayout extends React.Component {
                             <input
                               type="checkbox"
                               defaultChecked={value}
-                              onChange={function() { this.handleCheck(name, subitem.key) }}
+                              onChange={function() { that.handleCheck(name, subitem.key) }}
                             ></input>
                             {label[subitem.key] || subitem.key}({subitem.doc_count})
                           </label>
