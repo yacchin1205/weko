@@ -35,6 +35,7 @@
 {%- endblock css %}
 
 {%- block javascript %}
+  <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
   {% assets "weko_admin_angular_js" %}<script src="{{ ASSET_URL }}"></script>{% endassets %}
   {% assets "weko_admin_admin_lte_js_dependecies" %}<script src="{{ ASSET_URL }}"></script>{% endassets %}
   {% assets "weko_search_ui_dependencies_js" %}<script src="{{ ASSET_URL }}"></script>{% endassets %}

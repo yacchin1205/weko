@@ -157,15 +157,15 @@ require([
              url.searchParams.set("page", 1)
             $('#search_type :input:checked').each(function () {
                var list_params = $(this).serializeArray();
-               list_params.map(item => {
+               list_params.map(function (item) {
                   url.searchParams.set(item.name, item.value)
                })
             });
-            $('#q').serializeArray().map(item => {
+            $('#q').serializeArray().map(function (item) {
               url.searchParams.set(item.name, item.value.replace(/\+/g, ' '))
             })
             if ($('#community').val()) {
-                $('#community').serializeArray().map(item => {
+                $('#community').serializeArray().map(function (item) {
                   url.searchParams.set(item.name, item.value.replace(/\+/g, ' '))
                 })
             }

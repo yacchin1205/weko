@@ -44,40 +44,50 @@ class MainLayout extends React.Component {
     if (url.searchParams.has('search_type') && String(url.searchParams.get('search_type')) === "2") {
       url.pathname = '/api/index/'
     }
-    fetch(url.href, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(res => {
-        if (url.searchParams.has('search_type') && String(url.searchParams.get('search_type')) === "2") {
-//          Index faceted search
-          const data = res && res.aggregations && res.aggregations.path && res.aggregations.path.buckets && res.aggregations.path.buckets[0] ? res.aggregations.path.buckets[0] : {}
-          this.convertData(
-          data && data[0] ? data[0] : {})
+    $.ajax({
+        url: url.href,
+        type: 'GET',
+        contentType: 'application/json; charset=UTF-8',
+        success: function(res) {
+            if (url.searchParams.has('search_type') && String(url.searchParams.get('search_type')) === "2") {
+    //          Index faceted search
+              const data = res && res.aggregations && res.aggregations.path && res.aggregations.path.buckets && res.aggregations.path.buckets[0] ? res.aggregations.path.buckets[0] : {}
+              this.convertData(data && data[0] ? data[0] : {})
+            }
+            else {
+    //          default faceted search
+              this.convertData(res && res.aggregations ? res.aggregations : {})
+            }
+        },
+        error: function() {
+          alert("Error in get list")
         }
-        else {
-//          default faceted search
-          this.convertData(res && res.aggregations ? res.aggregations : {})
-        }
-      })
-      .catch(() => alert("Error in get list"));
+    });
   }
 
   convertData(data) {
     const list_name_facet = ["accessRights", "dataType", "distributor", "language"]
     let new_data = {}
-    Object.keys(data).map((name, k) => {
-      if (list_name_facet.includes(name)) {
-        let item = data[name]
-        if (item[name]) {
-          item = item[name]
+    if (data) {
+      Object.keys(data).map(function (name, k)  {
+        if (list_name_facet.includes(name)) {
+          let item = data[name]
+          if (item[name]) {
+            item = item[name]
+          }
+          new_data[name] = item
         }
-        new_data[name] = item
+      })
+    }
+    else {
+      new_data = {
+        accessRights : {},
+        dataType : {},
+        distributor : {},
+        language : {}
       }
-    })
+    }
+
     this.setState({
       list_facet: new_data
     })

@@ -29,6 +29,7 @@
 {%- endblock css %}
 
 {%- block javascript %}
+  <script src="https://cdn.polyfill.io/v2/polyfill.min.js"></script>
   {% assets "invenio_deposit_dependencies_js" %}<script src="{{ ASSET_URL }}"></script>{% endassets %}
   {{ super() }}
   {% assets "weko_theme_js_treeview" %}<script src="{{ ASSET_URL }}"></script>{% endassets %}
