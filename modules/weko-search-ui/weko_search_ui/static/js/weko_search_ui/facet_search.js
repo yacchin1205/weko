@@ -71,7 +71,7 @@ class MainLayout extends React.Component {
     let new_data = {}
     if (data) {
       Object.keys(data).map(function (name, k)  {
-        if (list_name_facet.indexOf(name)== -1) {
+        if (list_name_facet.indexOf(name)>=0) {
           let item = data[name]
           if (item[name]) {
             item = item[name]
@@ -100,8 +100,8 @@ class MainLayout extends React.Component {
 
   handleCheck(params, value) {
     let url = new URL(window.location.href)
-    if (url.searchParams.has(params) && url.searchParams.getAll(params).indexOf(value)== -1) {
-      let new_value = url.searchParams.getAll(params).filter(i => i !== value)
+    if (url.searchParams.has(params) && url.searchParams.getAll(params).indexOf(value)>=0) {
+      let new_value = url.searchParams.getAll(params).filter(function (i)  {return i !== value})
       url.searchParams.delete(params)
       new_value.map(function (v) { url.searchParams.append(params, v) })
     } else {
@@ -129,13 +129,13 @@ class MainLayout extends React.Component {
                   <div className="panel-body index-body">
                     {
                       item.buckets && item.buckets.map(function(subitem, k) {
-                        const value = url.searchParams.getAll(name).indexOf(subitem.key)== -1 ? true : false
+                        const value = url.searchParams.getAll(name).indexOf(subitem.key)>=0 ? true : false
                         return (
                           <label>
                             <input
                               type="checkbox"
                               defaultChecked={value}
-                              onChange={() => { this.handleCheck(name, subitem.key) }}
+                              onChange={function() { this.handleCheck(name, subitem.key) }}
                             ></input>
                             {label[subitem.key] || subitem.key}({subitem.doc_count})
                           </label>
