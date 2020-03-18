@@ -436,8 +436,12 @@ def default_view_method(pid, record, filename=None, template=None, **kwargs):
     detail_condition = get_search_detail_keyword('')
 
     # Add Item Reference data to Record Metadata
-    pid_without_ver = record.get("control_number").split('.')[0]
-    res = ItemLink.get_item_link_info(pid_without_ver)
+    pid_without_ver = record.get('control_number') or None
+    res = None
+    if pid_without_ver:
+        pid_without_ver = pid_without_ver.split('.')[0]
+        res = ItemLink.get_item_link_info(pid_without_ver)
+
     if res:
         record["relation"] = res
     else:
