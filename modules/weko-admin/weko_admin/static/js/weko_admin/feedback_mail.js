@@ -106,15 +106,32 @@ class ComponentExclusionTarget extends React.Component {
 
     componentDidMount(){
       document.addEventListener('mousedown', this.handleClickOutside);
-      fetch(GET_FEEDBACK_MAIL_URL)
-        .then(res => res.json())
-        .then((result) => {
-          let mailData = result.data || [];
-          let sendData = result.is_sending_feedback || false;
+      // IE11
+      $.ajax({
+        context: this,
+        url: GET_FEEDBACK_MAIL_URL,
+        type: 'GET',
+        // contentType: 'application/json',
+        // data: JSON.stringify(results),
+        success: function (result) {
+          var mailData = result.data || [];
+          var sendData = result.is_sending_feedback || false;
           this.props.bindingValueOfComponent('listEmail', mailData);
           this.props.bindingValueOfComponent('flagSend', sendData);
-        })
-        .catch(error => console.error(error));
+        },
+        error: function (error) {
+          console.log(error);
+        }
+      });
+      // fetch(GET_FEEDBACK_MAIL_URL)
+      //   .then(res => res.json())
+      //   .then((result) => {
+      //     let mailData = result.data || [];
+      //     let sendData = result.is_sending_feedback || false;
+      //     this.props.bindingValueOfComponent('listEmail', mailData);
+      //     this.props.bindingValueOfComponent('flagSend', sendData);
+      //   })
+      //   .catch(error => console.error(error));
     }
 
     componentWillUnmount() {
@@ -152,7 +169,9 @@ class ComponentExclusionTarget extends React.Component {
           selectedId: []
         });
       } else {
-        if (!this.state.selectedId.includes(id)) {
+        // Fix IE11
+        // if (!this.state.selectedId.includes(id)) {
+        if (this.state.selectedId.indexOf(id) < 0) {
 
           selectedId.push(id);
           this.setState({
@@ -194,7 +213,9 @@ class ComponentExclusionTarget extends React.Component {
     generateSelectedBox(listEmail) {
       let innerHTML = [];
       for (let id in listEmail) {
-        innerHTML.push(<a className={`list-group-item list-group-item-action ${this.state.selectedId.includes(id) ? 'active' : ''}`}
+        // Fix IE11
+        // innerHTML.push(<a className={`list-group-item list-group-item-action ${this.state.selectedId.includes(id) ? 'active' : ''}`}
+        innerHTML.push(<a className={`list-group-item list-group-item-action ${this.state.selectedId.indexOf(id) ? 'active' : ''}`}
                         onClick={() => { this.handleClick(id) }}
                         key={id}
                         value={listEmail[id].author_id}>{listEmail[id].email}</a>);
@@ -357,12 +378,26 @@ class SearchComponent extends React.Component {
       },
       body: JSON.stringify(request),
     }
-    fetch(SEARCH_EMAIL_URL, requestInit)
-      .then(res => res.json())
-      .then((result) => {
+    // IE11
+    $.ajax({
+      context: this,
+      url: SEARCH_EMAIL_URL,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(request),
+      success: function (result) {
         this.props.getListUser(result.hits.hits, result.hits.total);
-      })
-      .catch(error => console.error(error));
+      },
+      error: function (error) {
+        console.log(error);
+      }
+    });
+    // fetch(SEARCH_EMAIL_URL, requestInit)
+    //   .then(res => res.json())
+    //   .then((result) => {
+    //     this.props.getListUser(result.hits.hits, result.hits.total);
+    //   })
+    //   .catch(error => console.error(error));
   }
 
   handleChange(event){
@@ -466,13 +501,26 @@ class Pagination extends React.Component {
       },
       body: JSON.stringify(request),
     }
-
-    fetch(SEARCH_EMAIL_URL, requestInit)
-      .then(res => res.json())
-      .then((result) => {
+    // IE11
+    $.ajax({
+      context: this,
+      url: SEARCH_EMAIL_URL,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(request),
+      success: function (result) {
         this.props.getListUser(result.hits.hits, result.hits.total);
-      })
-      .catch(error => console.error(error));
+      },
+      error: function (error) {
+        console.log(error);
+      }
+    });
+    // fetch(SEARCH_EMAIL_URL, requestInit)
+    //   .then(res => res.json())
+    //   .then((result) => {
+    //     this.props.getListUser(result.hits.hits, result.hits.total);
+    //   })
+    //   .catch(error => console.error(error));
   }
 
   generatePagination(){
@@ -624,9 +672,13 @@ const ModalFooterResendComponent = function(props){
       },
       body: JSON.stringify(request)
     }
-    fetch(RESEND_FAILED_MAIL_URL, requestInit)
-      .then(res => res.json())
-      .then(res => {
+    // IE11
+    $.ajax({
+      url: RESEND_FAILED_MAIL_URL,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(request),
+      success: function (result) {
         if (res.success) {
           closeAlert();
           props.bindingValueOfComponent("resendMail", true);
@@ -634,11 +686,27 @@ const ModalFooterResendComponent = function(props){
           closeAlert();
           addAlert("Failed to resend email.", 1);
         }
-      })
-      .catch((error) => {
+      },
+      error: function (error) {
         closeAlert();
         addAlert(error, 1);
+      }
       });
+    // fetch(RESEND_FAILED_MAIL_URL, requestInit)
+    //   .then(res => res.json())
+    //   .then(res => {
+    //     if (res.success) {
+    //       closeAlert();
+    //       props.bindingValueOfComponent("resendMail", true);
+    //     } else {
+    //       closeAlert();
+    //       addAlert("Failed to resend email.", 1);
+    //     }
+    //   })
+    //   .catch((error) => {
+    //     closeAlert();
+    //     addAlert(error, 1);
+    //   });
     props.bindingValueOfComponent("showModalResend", false);
   }
 
@@ -662,18 +730,34 @@ const TableResendErrorComponent = function(props){
   const [currentIndex, setIndex] = useState(0);
 
   useEffect(() => {
-    fetch(GET_FAILED_MAIL_URL + "?page=1&id=" + props.bindID)
-      .then(res => res.json())
-      .then(
-        (result) => {
+    // IE11
+    $.ajax({
+      url: GET_FAILED_MAIL_URL + "?page=1&id=" + props.bindID,
+      type: 'POST',
+      success: function (result) {
           if (result.error) {
             alert(result.error);
             return;
           }
           setNumOfPage(result.total_page);
           setData(result.data);
-        })
-      .catch(error => console.error(error));
+      },
+      error: function (error) {
+        console.error(error)
+      }
+    });
+    // fetch(GET_FAILED_MAIL_URL + "?page=1&id=" + props.bindID)
+    //   .then(res => res.json())
+    //   .then(
+    //     (result) => {
+    //       if (result.error) {
+    //         alert(result.error);
+    //         return;
+    //       }
+    //       setNumOfPage(result.total_page);
+    //       setData(result.data);
+    //     })
+    //   .catch(error => console.error(error));
   },[]);
 
   function getData(data){
@@ -755,16 +839,31 @@ const PaginationResendLogsTable = function(props){
     if(props.bindID){
       extendData +="&id=" + props.bindID;
     }
-    fetch(props.bindURL + "?page=" + pageNumber + extendData)
-      .then(res => res.json())
-      .then((result) => {
+    // IE11
+    $.ajax({
+      url: props.bindURL + "?page=" + pageNumber + extendData,
+      type: 'GET',
+      success: function (result) {
         if (result.error) {
           console.error(result.error);
           return;
         }
         props.bindGetData(result);
-      })
-      .catch(error => console.error(error));
+      },
+      error: function (error) {
+        console.log(error);
+      }
+    });
+    // fetch(props.bindURL + "?page=" + pageNumber + extendData)
+    //   .then(res => res.json())
+    //   .then((result) => {
+    //     if (result.error) {
+    //       console.error(result.error);
+    //       return;
+    //     }
+    //     props.bindGetData(result);
+    //   })
+    //   .catch(error => console.error(error));
   }
 
   function generatePagination(){
@@ -866,19 +965,37 @@ class ComponentButtonLayout extends React.Component {
         },
         body: JSON.stringify(request_param)
       }
-
-      fetch(UPDATE_FEEDBACK_MAIL_URL, requestInit)
-        .then(res => res.json())
-        .then((result) => {
-          let message = MESSAGE_SUCCESS;
-          let type = 0;
+      // IE11
+      $.ajax({
+        url: UPDATE_FEEDBACK_MAIL_URL,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(request_param),
+        success: function (result) {
+          var message = MESSAGE_SUCCESS;
+          var type = 0;
           if (!result.success) {
             message = result.error;
             type = 1;
           }
           addAlert(message, type);
-        })
-        .catch(error => console.error(error));
+        },
+        error: function (error) {
+          console.log(error);
+        }
+      });
+      // fetch(UPDATE_FEEDBACK_MAIL_URL, requestInit)
+      //   .then(res => res.json())
+      //   .then((result) => {
+      //     let message = MESSAGE_SUCCESS;
+      //     let type = 0;
+      //     if (!result.success) {
+      //       message = result.error;
+      //       type = 1;
+      //     }
+      //     addAlert(message, type);
+      //   })
+      //   .catch(error => console.error(error));
     }
 
     render() {
@@ -920,10 +1037,11 @@ const ComponentLogsTable = function(props){
   }, [props.bindResendMail]);
 
   function handleLoadLogsTable() {
-    fetch(GET_SEND_MAIL_HISTORY_URL + "?page=1")
-      .then(res => res.json())
-      .then(
-        (result) => {
+    // IE11
+    $.ajax({
+      url: GET_SEND_MAIL_HISTORY_URL + "?page=1",
+      type: 'GET',
+      success: function (result) {
           if (result.error) {
             alert(result.error);
             return;
@@ -931,8 +1049,24 @@ const ComponentLogsTable = function(props){
           setNumOfPage(result.total_page);
           setData(result.data);
           setRecordsPerPage(result.records_per_page);
-        })
-      .catch(error => console.error(error));
+      },
+      error: function (error) {
+        console.log(error);
+      }
+    });
+    // fetch(GET_SEND_MAIL_HISTORY_URL + "?page=1")
+    //   .then(res => res.json())
+    //   .then(
+    //     (result) => {
+    //       if (result.error) {
+    //         alert(result.error);
+    //         return;
+    //       }
+    //       setNumOfPage(result.total_page);
+    //       setData(result.data);
+    //       setRecordsPerPage(result.records_per_page);
+    //     })
+    //   .catch(error => console.error(error));
   }
 
   function getData(data) {
@@ -1032,7 +1166,9 @@ class MainLayout extends React.Component {
       $("#sltBoxListEmail > a").each(function(){
         listUser.push(this.text);
       });
-      let isExist = listUser.includes(data.email);
+      // IE11
+      // let isExist = listUser.includes(data.email);
+      let isExist = listUser.indexOf(data.email) >= 0;
       if(isExist){
         alert(DUPLICATE_ERROR_MESSAGE);
         return false;
