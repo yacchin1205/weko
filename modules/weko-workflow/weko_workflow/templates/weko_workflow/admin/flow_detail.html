@@ -212,9 +212,21 @@
       let actionName = $('#action_name_'+actionId).text();
       let actionVer = $('#action_ver_'+actionId).text();
       apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-      apply_action = apply_action_list.find(function(element) {
-        return element.id == actionId;
-      });
+      // Fix IE11
+      //apply_action = apply_action_list.find(function(element) {
+      //  return element.id == actionId;
+      //});
+      let apply_action;
+      for(let index in apply_action_list){
+        let element = apply_action_list[index];
+        if (element.id == actionId) {
+          apply_action = element;
+          break;
+        }
+      }
+
+      console.log("apply_action: ", apply_action_list);
+
       if(apply_action == undefined) {
         apply_action = {
           id: actionId,
@@ -229,7 +241,9 @@
         };
         apply_action_list.push(apply_action);
       } else {
-        Object.assign(apply_action, {action: 'ADD'});
+        // Fix IE11
+        // Object.assign(apply_action, {action: 'ADD'});
+        apply_action['action'] = 'ADD';
       }
       localStorage.setItem('apply_action_list', JSON.stringify(apply_action_list));
       $(this).removeClass('btn-primary');
@@ -244,10 +258,23 @@
       let actionId = $(this).data('action-id');
       let actionName = $('#action_name_'+actionId).text();
       apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-      apply_action = apply_action_list.find(function(element) {
-        return element.id == actionId;
-      });
-      Object.assign(apply_action, {action: 'DEL'});
+      // Fix IE11
+      //apply_action = apply_action_list.find(function(element) {
+      //  return element.id == actionId;
+      //});
+      let apply_action;
+      for(let index in apply_action_list){
+        let element = apply_action_list[index];
+        if (element.id == actionId) {
+          apply_action = element;
+          break;
+        }
+      }
+      //end fix
+      // Fix IE11
+      //Object.assign(apply_action, {action: 'DEL'});
+      apply_action['action'] = 'DEL';
+      // endfix
       localStorage.setItem('apply_action_list', JSON.stringify(apply_action_list));
       $(this).removeClass('btn-primary');
       $(this).addClass('btn-default');
@@ -270,36 +297,76 @@
     $('#tb_action_list').on('change', '.td_action_role', function(){
       let actionId = $(this).data('action-id');
       apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-      apply_action = apply_action_list.find(function(element) {
-        return element.id == actionId;
-      });
+      // Fix IE11
+      //apply_action = apply_action_list.find(function(element) {
+      //  return element.id == actionId;
+      //});
+      let apply_action;
+      for(let index in apply_action_list){
+        let element = apply_action_list[index];
+        if (element.id == actionId) {
+          apply_action = element;
+          break;
+        }
+      }
+      //endfix
       Object.assign(apply_action, {role: $(this).val()});
       localStorage.setItem('apply_action_list', JSON.stringify(apply_action_list));
     });
     $('#tb_action_list').on('change', '.td_action_role_deny', function(){
       let actionId = $(this).data('action-id');
       apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-      apply_action = apply_action_list.find(function(element) {
-        return element.id == actionId;
-      });
+      // Fix IE11
+      //apply_action = apply_action_list.find(function(element) {
+      //  return element.id == actionId;
+      //});
+      let apply_action;
+      for(let index in apply_action_list){
+        let element = apply_action_list[index];
+        if (element.id == actionId) {
+          apply_action = element;
+          break;
+        }
+      }
+      //endfix
       Object.assign(apply_action, {role_deny: $(this).is(':checked')});
       localStorage.setItem('apply_action_list', JSON.stringify(apply_action_list));
     });
     $('#tb_action_list').on('change', '.td_action_user', function(){
       let actionId = $(this).data('action-id');
       apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-      apply_action = apply_action_list.find(function(element) {
-        return element.id == actionId;
-      });
+      // Fix IE11
+      //apply_action = apply_action_list.find(function(element) {
+      //  return element.id == actionId;
+      //});
+      let apply_action;
+      for(let index in apply_action_list){
+        let element = apply_action_list[index];
+        if (element.id == actionId) {
+          apply_action = element;
+          break;
+        }
+      }
+      //endfix
       Object.assign(apply_action, {user: $(this).val()});
       localStorage.setItem('apply_action_list', JSON.stringify(apply_action_list));
     });
     $('#tb_action_list').on('change', '.td_action_user_deny', function(){
       let actionId = $(this).data('action-id');
       apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-      apply_action = apply_action_list.find(function(element) {
-        return element.id == actionId;
-      });
+      // Fix IE11
+      //apply_action = apply_action_list.find(function(element) {
+      //  return element.id == actionId;
+      //});
+      let apply_action;
+      for(let index in apply_action_list){
+        let element = apply_action_list[index];
+        if (element.id == actionId) {
+          apply_action = element;
+          break;
+        }
+      }
+      //endfix
       Object.assign(apply_action, {user_deny: $(this).is(':checked')});
       localStorage.setItem('apply_action_list', JSON.stringify(apply_action_list));
     });
@@ -482,14 +549,14 @@
       $('.sortable_up:first').prop('disabled', true);
       $('.sortable_down:last').prop('disabled', true);
       initOrderNum();
-      uptOrderInfo();
+      uptOrderInfo(true);
     }
     function initOrderNum() {
       $('.action_order').each(function(index){
         $(this).text(index+1);
       });
     }
-    function uptOrderInfo(with_delete=true) {
+    function uptOrderInfo(with_delete) {
       action_list = [];
       $('.action_ids').each(function(index){
         let actionId = $(this).text();
@@ -507,9 +574,19 @@
       });
       if(with_delete) {
         apply_action_list = JSON.parse(localStorage.getItem('apply_action_list'));
-        deleted_action = apply_action_list.find(function(element){
-          return element.action == 'DEL';
-        });
+        //deleted_action = apply_action_list.find(function(element){
+        //  return element.action == 'DEL';
+        //});
+
+        let deleted_action;
+        for (let index in apply_action_list){
+          let element = apply_action_list[index];
+          if (element.action == 'DEL') {
+          deleted_action = element;
+          break;
+        }
+        }
+
         if(deleted_action != undefined) {
           action_list.push(deleted_action);
         }
