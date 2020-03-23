@@ -5,6 +5,7 @@ require([
     $(document).ready( function() {
       $($('.field-row-default').find('input[name="access_date"]')[0]).val(getDate());
       addField();
+        SelectField(); // Fix ie11
     });
     $('#add-field-link').on('click', function() {
       addField();
@@ -29,55 +30,57 @@ require([
       }
     });
 
-    $('select[name="field_sel"]').change(function() {
-      var selected = $(this).val();
-      var contents = $(this).parents('.field-row').find('.field-content');
+    function SelectField() { //Fix ie11 add name function
+      $('select[name="field_sel"]').change(function() {
+        var selected = $(this).val();
+        var contents = $(this).parents('.field-row').find('.field-content');
 
-      // Get selected fields
-      var fields = [];
-      $('.row.field-row').each(function(i, row) {
-        var field = $($(row).find('select[name="field_sel"]')[0]).prop('value');
-        if(field !== 'unselected') {
-          fields.push(field);
-        }
-      });
-
-      var uniqueFields = fields.filter(function (x, i, self) {
-        return self.indexOf(x) === i;
-      });
-      // Check fields
-      if(fields.length !== uniqueFields.length) {
-        //alert('Field already exists.');
-        var modalcontent =  "Field already exists.";
-        $("#inputModal").html(modalcontent);
-        $("#allModal").modal("show");
-        $(this).val('unselected');
-        contents.each(function(i, elem) {
-          $(elem).attr('hidden', 'hidden');
+        // Get selected fields
+        var fields = [];
+        $('.row.field-row').each(function(i, row) {
+          var field = $($(row).find('select[name="field_sel"]')[0]).prop('value');
+          if(field !== 'unselected') {
+            fields.push(field);
+          }
         });
-        return;
-      }
 
-      contents.each(function(i, elem) {
-        var elemAttr = $(elem).attr('class');
-        // Access Type
-        if(elemAttr.indexOf('access-type-select') >= 0){
-          if('1' === selected.toString()){
-            $(elem).removeAttr("hidden");
-          }else {
+        var uniqueFields = fields.filter(function (x, i, self) {
+          return self.indexOf(x) === i;
+        });
+        // Check fields
+        if(fields.length !== uniqueFields.length) {
+          //alert('Field already exists.');
+          var modalcontent =  "Field already exists.";
+          $("#inputModal").html(modalcontent);
+          $("#allModal").modal("show");
+          $(this).val('unselected');
+          contents.each(function(i, elem) {
             $(elem).attr('hidden', 'hidden');
-          }
-
-        // Licence
-        } else if(elemAttr.indexOf('licence-select') >= 0){
-          if('2' === selected.toString()){
-            $(elem).removeAttr("hidden");
-          }else {
-            $(elem).attr('hidden', 'hidden');
-          }
+          });
+          return;
         }
+
+        contents.each(function(i, elem) {
+          var elemAttr = $(elem).attr('class');
+          // Access Type
+          if(elemAttr.indexOf('access-type-select') >= 0){
+            if('1' === selected.toString()){
+              $(elem).removeAttr("hidden");
+            }else {
+              $(elem).attr('hidden', 'hidden');
+            }
+
+          // Licence
+          } else if(elemAttr.indexOf('licence-select') >= 0){
+            if('2' === selected.toString()){
+              $(elem).removeAttr("hidden");
+            }else {
+              $(elem).attr('hidden', 'hidden');
+            }
+          }
+        });
       });
-    });
+    }
 
     $('select[name="licence_sel"]').change( function() {
       var selected = $(this).val();
@@ -158,7 +161,7 @@ require([
             <tbody>\
             </tbody>\
           </table>'
-      )  
+      )
       // Get setting fields
       var accessType = {};
       var licence= '';
@@ -205,7 +208,7 @@ require([
                          '<td>' + before_licence + '</td>' +
                          '<td>' + after_access_type + '</td>' +
                          '<td>' + after_licence + '</td>' +
-                         '</tr>' 
+                         '</tr>'
                         );
                     };
                 });
