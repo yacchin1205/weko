@@ -52,18 +52,32 @@ class ComponentTableResult extends React.Component {
       unit: unit
     };
     let request_url = '/api/stats/' + target + '/' + requestParam['start_date'].replace(/\//g, '-') + '/' + requestParam['end_date'].replace(/\//g, '-') + '/' + unitText + '?p=' + selectedPage;
-    fetch(request_url/*,
-        TODO: Display to result table {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(requestParam)
-        }*/)
-      .then(res => res.json())
-      .then((result) => {
+    // IE11
+    console.log('request_url: ', request_url);
+    $.ajax({
+      context: this,
+      url: request_url,
+      type: 'GET',
+      success: function (result) {
+        console.log('result: ', result);
         this.displayData(result.data);
+      },
+      error: function (error) {
+        console.log(error);
+      }
       });
+    // fetch(request_url/*,
+    //     TODO: Display to result table {
+    //       method: "GET",
+    //       headers: {
+    //         "Content-Type": "application/json"
+    //       },
+    //       body: JSON.stringify(requestParam)
+    //     }*/)
+    //   .then(res => res.json())
+    //   .then((result) => {
+    //     this.displayData(result.data);
+    //   });
   }
 
   initPageButton(selectedPage) {
@@ -262,12 +276,16 @@ class ComponentCombobox extends React.Component {
   componentDidMount() {
     if (this.props.id_component == 'target') {
       let initURL = "/api/admin/get_init_selection/target";
-      fetch(initURL)
-        .then(res => res.json())
-        .then(
-          (result) => {
-            let selectionData = result[this.props.id_component];
-            let options = selectionData.map((option) => {
+      // IE11
+      console.log('initURL: ', initURL);
+      $.ajax({
+        context: this,
+        url: initURL,
+        type: 'GET',
+        success: function (result) {
+          console.log('result: ', result);
+          var selectionData = result[this.props.id_component];
+          var options = selectionData.map((option) => {
               return (
                 <option key={option.id} value={option.id}>{option.data}</option>
               );
@@ -276,8 +294,27 @@ class ComponentCombobox extends React.Component {
               selections: options,
               disabled: false
             });
+        },
+        error: function (error) {
+          console.log(error);
           }
-        );
+      });
+      // fetch(initURL)
+      //   .then(res => res.json())
+      //   .then(
+      //     (result) => {
+      //       let selectionData = result[this.props.id_component];
+      //       let options = selectionData.map((option) => {
+      //         return (
+      //           <option key={option.id} value={option.id}>{option.data}</option>
+      //         );
+      //       });
+      //       this.setState({
+      //         selections: options,
+      //         disabled: false
+      //       });
+      //     }
+      //   );
     }
     let buttonHtml;
     if (this.props.id_component == 'unit') {
@@ -298,12 +335,16 @@ class ComponentCombobox extends React.Component {
         if (props.disable) {
           let target = document.getElementById("target").value;
           let initURL = "/api/admin/get_init_selection/" + target;
-          fetch(initURL)
-            .then(res => res.json())
-            .then(
-              (result) => {
-                let selectionData = result[this.props.id_component];
-                let options = selectionData.map((option) => {
+          // IE11
+          console.log('initURL2: ', initURL);
+          $.ajax({
+            context: this,
+            url: initURL,
+            type: 'GET',
+            success: function (result) {
+              console.log('result: ', result);
+              var selectionData = result[this.props.id_component];
+              var options = selectionData.map((option) => {
                   return (
                     <option key={option.id} value={option.id}>{option.data}</option>
                   );
@@ -312,8 +353,27 @@ class ComponentCombobox extends React.Component {
                   selections: options,
                   disabled: !props.disable
                 });
+            },
+            error: function (error) {
+              console.log(error);
               }
-            );
+          })
+          // fetch(initURL)
+          //   .then(res => res.json())
+          //   .then(
+          //     (result) => {
+          //       let selectionData = result[this.props.id_component];
+          //       let options = selectionData.map((option) => {
+          //         return (
+          //           <option key={option.id} value={option.id}>{option.data}</option>
+          //         );
+          //       });
+          //       this.setState({
+          //         selections: options,
+          //         disabled: !props.disable
+          //       });
+          //     }
+          //   );
         }else {
         this.setState({
           disabled: !props.disable
@@ -401,9 +461,14 @@ class ComponentCombobox extends React.Component {
         unit: unit
       };
       let request_url = '/api/stats/'+ target + '/' + requestParam['start_date'].replace(/\//g, '-') + '/' + requestParam['end_date'].replace(/\//g, '-') + '/' + unitText + '?p=1';
-      fetch(request_url)
-        .then(res => res.json())
-        .then((result) => {
+      // IE11
+      console.log('request_url2: ', request_url);
+      $.ajax({
+        context: this,
+        url: request_url,
+        type: 'GET',
+        success: function (result) {
+          console.log('result: ', result);
           if (result.data.length == 0) {
             if (document.getElementById('no_data').classList.contains('hidden')) {
               document.getElementById('no_data').classList.remove('hidden')
@@ -422,7 +487,34 @@ class ComponentCombobox extends React.Component {
           this.props.getValueOfField(this.props.key_binding, result.data);
           this.props.getNumPage(result.num_page);
           this.props.getTableHidden(false);
-        });
+        },
+        error: function (error) {
+          console.log(error);
+        }
+      })
+      // fetch(request_url)
+      //   .then(res => res.json())
+      //   .then((result) => {
+      //     if (result.data.length == 0) {
+      //       console.log("asdasd");
+      //       if (document.getElementById('no_data').classList.contains('hidden')) {
+      //         document.getElementById('no_data').classList.remove('hidden')
+      //       }
+      //       if (!document.getElementById('pagination').classList.contains('hidden')) {
+      //         document.getElementById('pagination').classList.add('hidden')
+      //       }
+      //     }else {
+      //       if (!document.getElementById('no_data').classList.contains('hidden')) {
+      //         document.getElementById('no_data').classList.add('hidden')
+      //       }
+      //       if (document.getElementById('pagination').classList.contains('hidden')) {
+      //         document.getElementById('pagination').classList.remove('hidden')
+      //       }
+      //     }
+      //     this.props.getValueOfField(this.props.key_binding, result.data);
+      //     this.props.getNumPage(result.num_page);
+      //     this.props.getTableHidden(false);
+      //   });
     }
   }
 

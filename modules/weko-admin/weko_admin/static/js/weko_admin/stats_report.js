@@ -41,7 +41,9 @@ $(document).ready(function () {
         'search_count',
         'user_roles',
         'site_access'];
-      for (let item in options) {
+      // IE11
+      // for (let item in options) {
+      for (var item in options) {
         var url = (options[item] == 'user_roles' ? uriByType[options[item]] : uriByType[options[item]] + '/' + year + '/' + month);
         statsReports[options[item]] = ajaxGetTSV(url);
       }
@@ -79,14 +81,23 @@ $(document).ready(function () {
    });
 
   $('#saveEmail').on('click', function () {
-      // save any invalid addresses
-      let invalidInputs = Array.from(document.getElementById('email_form').elements).filter(function(element){
-        return element.type == 'email' &&  element.value && !element.checkValidity();
-      });
-      let invalidEmails = [];
-      for (let element of invalidInputs) {
-        invalidEmails.push(element.value);
+      // IE11
+      // Array.from not defined in IE
+      var invalidEmails = [];
+      var formElements = document.getElementById('email_form').elements;
+      for (var i=0; i < formElements.length; i++){
+        var element = formElements[i];
+        if (element.type == 'email' &&  element.value && !element.checkValidity()){
+          invalidEmails.push(element.value);
+        }
       }
+      // let invalidInputs = Array.from(document.getElementById('email_form').elements).filter(function(element){
+      //   return element.type == 'email' &&  element.value && !element.checkValidity();
+      // });
+      // let invalidEmails = [];
+      // for (let element of invalidInputs) {
+      //   invalidEmails.push(element.value);
+      // }
       localStorage.setItem('invalidEmails', JSON.stringify(invalidEmails));
       $('#email_form').submit();
   });
@@ -95,7 +106,9 @@ $(document).ready(function () {
   if (localStorage.getItem('invalidEmails')) {
     // load invalid address if saved
     let invalidEmails = JSON.parse(localStorage.getItem('invalidEmails'));
-    for (let email of invalidEmails) {
+    // IE11
+    // for (let email of invalidEmails) {
+    for (var email in invalidEmails) {
       document.getElementById('inputEmail_0').value = email;
       moreEmail();
     }
@@ -130,8 +143,11 @@ function setStatsReportSubmit(statsReports) {
 
 function addAlert(message) {
   let flashMessage = document.createElement('div');
-  for (let className of ['alert', 'alert-error', 'alert-dismissable']) {
-    flashMessage.classList.add(className);
+  // IE11
+  // for (let className of ['alert', 'alert-error', 'alert-dismissable']) {
+  var classNames = ['alert', 'alert-error', 'alert-dismissable']
+  for (var index in classNames) {
+    flashMessage.classList.add(classNames[index]);
   }
 
   flashMessage.textContent = message;
