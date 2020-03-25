@@ -134,19 +134,36 @@ class ListResourceComponent extends React.Component {
   }
 
   handleGetList() {
-    fetch(urlGetList, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(res => {
+    // IE11
+    console.log('urlGetList: ', urlGetList);
+    $.ajax({
+      context: this,
+      url: urlGetList,
+      type: 'GET',
+      contentType: 'application/json',
+      success: function (result) {
+        console.log('result: ', result);
         this.setState({
-          list_resource: res
+          list_resource: result
         });
-      })
-      .catch(() => alert("Error in get list"));
+      },
+      error: function (error) {
+        alert("Error in get list")
+      }
+    });
+    // fetch(urlGetList, {
+    //   method: "GET",
+    //   headers: {
+    //     "Content-Type": "application/json"
+    //   }
+    // })
+    //   .then(res => res.json())
+    //   .then(res => {
+    //     this.setState({
+    //       list_resource: res
+    //     });
+    //   })
+    //   .catch(() => alert("Error in get list"));
   }
 
   handleViewDetail(item) {
@@ -160,22 +177,42 @@ class ListResourceComponent extends React.Component {
   handleDelete(item) {
     const a = confirm("Are you sure to delete it ?");
     if (a) {
-      fetch(urlDelete + "/" + item.id, {
-        method: "POST",
-        body: JSON.stringify(item),
-        headers: {
-          "Content-Type": "application/json"
-        }
-      })
-        .then(res => res.json())
-        .then(res => {
-          if (res.success) {
+      // IE11
+      console.log('urlDelete + "/" + item.id: ', urlDelete + "/" + item.id);
+      $.ajax({
+        context: this,
+        url: urlDelete + "/" + item.id,
+        type: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(item),
+        success: function (result) {
+          console.log('result: ', result);
+          if (result.success) {
             this.handleGetList();
           } else {
             alert("Error in Delete");
           }
-        })
-        .catch(() => alert("Error in Delete"));
+        },
+        error: function (error) {
+          alert("Error in Delete")
+        }
+      });
+      // fetch(urlDelete + "/" + item.id, {
+      //   method: "POST",
+      //   body: JSON.stringify(item),
+      //   headers: {
+      //     "Content-Type": "application/json"
+      //   }
+      // })
+      //   .then(res => res.json())
+      //   .then(res => {
+      //     if (res.success) {
+      //       this.handleGetList();
+      //     } else {
+      //       alert("Error in Delete");
+      //     }
+      //   })
+      //   .catch(() => alert("Error in Delete"));
     }
   }
 
@@ -295,16 +332,17 @@ class CreateResourceComponent extends React.Component {
   handleSubmit(add_another) {
     const new_data = { ...this.state };
     delete new_data.tree_list;
-    fetch(urlCreate, {
-      method: "POST",
-      body: JSON.stringify(new_data),
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
+    // IE11
+    console.log('urlCreate ', urlCreate);
+    $.ajax({
+      context: this,
+      url: urlCreate,
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify(new_data),
+      success: function (result) {
+        console.log('result: ', result);
+        if (result.success) {
           if(add_another){
             this.setState({
               ...default_state
@@ -313,30 +351,76 @@ class CreateResourceComponent extends React.Component {
             this.props.handleChangeTab("list");
           }
         } else {
-          alert(res.message);
+          alert(result.message);
         }
-      })
-      .catch(() => alert("Error in Create"));
+      },
+      error: function (error) {
+        alert("Error in Create")
+      }
+    });
+    // fetch(urlCreate, {
+    //   method: "POST",
+    //   body: JSON.stringify(new_data),
+    //   headers: {
+    //     "Content-Type": "application/json"
+    //   }
+    // })
+    //   .then(res => res.json())
+    //   .then(res => {
+    //     if (res.success) {
+    //       if(add_another){
+    //         this.setState({
+    //           ...default_state
+    //         })
+    //       } else {
+    //         this.props.handleChangeTab("list");
+    //       }
+    //     } else {
+    //       alert(res.message);
+    //     }
+    //   })
+    //   .catch(() => alert("Error in Create"));
   }
 
   getTreeList() {
-    fetch(urlGetTreeList, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(res => {
+    // IE11
+    console.log('urlGetTreeList1 ', urlGetTreeList);
+    $.ajax({
+      context: this,
+      url: urlGetTreeList,
+      type: 'GET',
+      contentType: 'application/json',
+      success: function (result) {
+        console.log('result: ', result);
         let treeList = [];
-        res.map(item => {
+        result.map(item => {
           treeList = [...treeList, ...this.generateTreeList(item, "")];
         });
         this.setState({
           tree_list: treeList
         });
-      })
-      .catch(() => alert("Error in get Tree list"));
+      },
+      error: function (error) {
+        alert("Error in get Tree list")
+      }
+    });
+    // fetch(urlGetTreeList, {
+    //   method: "GET",
+    //   headers: {
+    //     "Content-Type": "application/json"
+    //   }
+    // })
+    //   .then(res => res.json())
+    //   .then(res => {
+    //     let treeList = [];
+    //     res.map(item => {
+    //       treeList = [...treeList, ...this.generateTreeList(item, "")];
+    //     });
+    //     this.setState({
+    //       tree_list: treeList
+    //     });
+    //   })
+    //   .catch(() => alert("Error in get Tree list"));
   }
 
   generateTreeList(item, path = "") {
@@ -540,42 +624,83 @@ class EditResourceComponent extends React.Component {
     const new_data = { ...this.state };
     delete new_data.tree_list;
     delete new_data.id;
-    fetch(urlUpdate + "/" + this.state.id, {
-      method: "POST",
-      body: JSON.stringify(new_data),
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(res => {
-        if (res.success) {
+    // IE11
+    console.log('urlUpdate + "/" + this.state.id: ', urlUpdate + "/" + this.state.id);
+    $.ajax({
+      context: this,
+      url: urlUpdate + "/" + this.state.id,
+      type: 'POST',
+      data: JSON.stringify(new_data),
+      contentType: 'application/json',
+      success: function (result) {
+        console.log('result: ', result);
+        if (result.success) {
           this.props.handleChangeTab("list");
         } else {
-          alert(res.message);
+          alert(result.message);
         }
-      })
-      .catch(() => alert("Error in Edit"));
+      },
+      error: function (error) {
+        alert("Error in Edit")
+      }
+    });
+    // fetch(urlUpdate + "/" + this.state.id, {
+    //   method: "POST",
+    //   body: JSON.stringify(new_data),
+    //   headers: {
+    //     "Content-Type": "application/json"
+    //   }
+    // })
+    //   .then(res => res.json())
+    //   .then(res => {
+    //     if (res.success) {
+    //       this.props.handleChangeTab("list");
+    //     } else {
+    //       alert(res.message);
+    //     }
+    //   })
+    //   .catch(() => alert("Error in Edit"));
   }
 
   getTreeList() {
-    fetch(urlGetTreeList, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-      .then(res => res.json())
-      .then(res => {
+    // IE11
+    console.log('urlGetTreeList: ', urlGetTreeList);
+    $.ajax({
+      context: this,
+      url: urlGetTreeList,
+      type: 'GET',
+      contentType: 'application/json',
+      success: function (result) {
+        console.log('result: ', result);
         let treeList = [];
-        res.map(item => {
+        result.map(item => {
           treeList = [...treeList, ...this.generateTreeList(item, "")];
         });
         this.setState({
           tree_list: treeList
         });
-      })
-      .catch(() => alert("Error in get Tree list"));
+      },
+      error: function (error) {
+        alert("Error in get Tree list")
+      }
+    });
+    // fetch(urlGetTreeList, {
+    //   method: "GET",
+    //   headers: {
+    //     "Content-Type": "application/json"
+    //   }
+    // })
+    //   .then(res => res.json())
+    //   .then(res => {
+    //     let treeList = [];
+    //     res.map(item => {
+    //       treeList = [...treeList, ...this.generateTreeList(item, "")];
+    //     });
+    //     this.setState({
+    //       tree_list: treeList
+    //     });
+    //   })
+    //   .catch(() => alert("Error in get Tree list"));
   }
 
   generateTreeList(item, path = "") {
