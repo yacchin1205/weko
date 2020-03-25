@@ -31,11 +31,18 @@ $(document).ready(function () {
 
   for (let index = 0; index < targets.length; index++) {
     let isChecked = $('#' + flag(targets[index])).prop('checked');
+    // IE11
+    var target = '<option value="'+targets[index]+'">'+labels[index]+'</option>';
     if ($('#' + flag(targets[index])).prop('checked')) {
-      rightSelect.append(`<option value="${targets[index]}">${labels[index]}</option>`);
+      rightSelect.append(target)
     } else {
-      leftSelect.append(`<option value="${targets[index]}">${labels[index]}</option>`);
+      leftSelect.append(target);
     }
+    // if ($('#' + flag(targets[index])).prop('checked')) {
+    //   rightSelect.append(`<option value="${targets[index]}">${labels[index]}</option>`);
+    // } else {
+    //   leftSelect.append(`<option value="${targets[index]}">${labels[index]}</option>`);
+    // }
     $('#' + targets[index]).prop('readonly', !isChecked);
     $('#' + flag(targets[index])).parent().parent().hide()
   }
@@ -92,7 +99,7 @@ $(document).ready(function () {
         return 'jalc_datacite_flag';
       default:
         return inputId;
-    } 
+    }
   }
 });
 
