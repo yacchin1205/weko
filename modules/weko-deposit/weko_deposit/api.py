@@ -1000,33 +1000,104 @@ class WekoRecord(Record):
                                 break
 
             def format_creator_to_show_popup(author, default_lang, dict_temp):
-                if isinstance(author, dict):
-                    for key, value in author.items():
-                        if key == DEPOSIT_RECORDS_UI_CREATOR[
-                                'identifiers'] or key == \
-                                DEPOSIT_RECORDS_UI_CREATOR['creator_mails']:
-                            continue
-                        format_creator_to_show_popup(value, default_lang,
-                                                     dict_temp)
-                else:
-                    for i in author:
-                        count = 0
-                        if isinstance(i, dict) and default_lang:
-                            for k, v in i.items():
-                                if v == default_lang and 'Lang' in k:
-                                    if dict_temp:
-                                        dict_temp[default_lang].update(i)
-                                    else:
-                                        dict_temp[default_lang] = i
+                dicts = {}
+                arrTest_lang = []
+                arrTest = []
+                for key, value in author.items():
+                    if default_lang == None:
+                        if "creatorNames" == key:
+                            dicts[0] = value
+
+                        if key == "familyNames":
+                            dicts[1] = value
+
+                        if key == "givenNames":
+                            dicts[2] = value
+
+                        if key == "creatorAlternatives":
+                            dicts[3] = value
+
+                        if key == "affiliation":
+                            dicts[4] = value
+
+                        if key == "nameIdentifiers":
+                            dicts[5] = value
+
+                    elif "creatorNames" in author:
+                        if "creatorNames" == key:
+                            dicts[0] = value
+
+                        if key == "creatorAlternatives":
+                            dicts[1] = value
+
+                        if key == "affiliation":
+                            dicts[2] = value
+
+                        if key == "nameIdentifiers":
+                            dicts[3] = value
+
+                    else:
+                        if key == "familyNames":
+                            dicts[0] = value
+
+                        if key == "givenNames":
+                            dicts[1] = value
+
+                        if key == "creatorAlternatives":
+                            dicts[2] = value
+
+                        if key == "affiliation":
+                            dicts[3] = value
+
+                        if key == "nameIdentifiers":
+                            dicts[4] = value
+
+                for key, value in dicts.items():
+                    for item in value:
+                        count_curr_lang = 0
+                        for k, v in item.items():
+                            if v == default_lang and 'Lang' in k:
+                                count_curr_lang += 1
+
+                        if count_curr_lang > 0:
+                            arrTest_lang.append(item)
                         else:
-                            for k, v in i.items():
+                            count_other_lang = 0
+                            for k, v in item.items():
                                 if 'Lang' in k:
-                                    count = count + 1
-                            if count == 0:
-                                if dict_temp:
-                                    dict_temp['NoLanguage'].update(i)
-                                else:
-                                    dict_temp['NoLanguage'] = i
+                                    count_other_lang += 1
+                            if count_other_lang == 0 and default_lang == None:
+                                arrTest.append(item)
+                else:
+                    dict_temp[default_lang] = arrTest_lang
+                    dict_temp['NoLanguage'] = arrTest
+                # if isinstance(author, dict):
+                #     for key, value in author.items():
+                #         if key == DEPOSIT_RECORDS_UI_CREATOR[
+                #                 'identifiers'] or key == \
+                #                 DEPOSIT_RECORDS_UI_CREATOR['creator_mails']:
+                #             continue
+                #         format_creator_to_show_popup(value, default_lang,
+                #                                      dict_temp)
+                # else:
+                #     for i in author:
+                #         count = 0
+                #         if isinstance(i, dict) and default_lang:
+                #             for k, v in i.items():
+                #                 if v == default_lang and 'Lang' in k:
+                #                     if dict_temp:
+                #                         dict_temp[default_lang].update(i)
+                #                     else:
+                #                         dict_temp[default_lang] = i
+                #         else:
+                #             for k, v in i.items():
+                #                 if 'Lang' in k:
+                #                     count = count + 1
+                #             if count == 0:
+                #                 if dict_temp:
+                #                     dict_temp['NoLanguage'].update(i)
+                #                 else:
+                #                     dict_temp['NoLanguage'] = i
 
             lst = []
             creator_names = DEPOSIT_RECORDS_UI_CREATOR['creator_names']
