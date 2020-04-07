@@ -69,32 +69,37 @@
                                                 <span>{{key}}</span>
                                                 {%- endif -%}
                                             </th>
-                                            <td class='key_lang'><span class="test">
-                                                {%- if 'creatorName' in value -%}
-                                                    {{value['creatorName']}}<br>
+                                            <td class='key_lang'>
+                                                {%- for v in value-%}
+                                                    {%- if 'creatorName' in v -%}
+                                                        {{v['creatorName']}}<br>
+                                                    {%- endif -%}
+                                                        {%- if 'familyName' in v -%}
+                                                            {%- if key == 'NoLanguage' -%}
+                                                                {{v['familyName']}}<br />
                                                 {%- else -%}
-                                                        {%- if 'familyName' in value -%}
-                                                            {{value['familyName']}}<span> </span>
+                                                                {{v['familyName']}}&nbsp;
                                                         {%- endif -%}
-                                                        {%- if 'givenName' in value -%}
-                                                            {{value['givenName']}}<br>
                                                         {%- endif -%}
+                                                    {%- if 'givenName' in v -%}
+                                                        {{v['givenName']}}<br>
                                                 {%- endif -%}
-                                                {%- if 'creatorAlternative' in value -%}
-                                                    {{value['creatorAlternative']}}<br>
+                                                    {%- if 'creatorAlternative' in v -%}
+                                                    {{v['creatorAlternative']}}<br>
                                                 {%- endif -%}
-                                                {%- if 'affiliationNameIdentifierScheme' in value -%}
-                                                    {{value['affiliationNameIdentifierScheme']}}<span> </span>
+                                                    {%- if 'affiliationNameIdentifierScheme' in v -%}
+                                                        {{v['affiliationNameIdentifierScheme']}}<span> </span>
                                                 {%- endif -%}
-                                                {%- if 'affiliationName' in value -%}
-                                                    {{value['affiliationName']}}<span> </span>
+                                                    {%- if 'affiliationName' in v -%}
+                                                        {{v['affiliationName']}}<span> </span>
                                                 {%- endif -%}
-                                                {%- if 'affiliationNameIdentifier' in value -%}
-                                                    <a href='{%- if "affiliationNameIdentifierURI" in value -%}{{value["affiliationNameIdentifierURI"]}}{%- else -%}{{"javascript:void(0)"}}{%- endif -%}'>
-                                                        {{value['affiliationNameIdentifier']}}
-                                                    </a>
+                                                    {%- if 'affiliationNameIdentifier' in v -%}
+                                                        <a href='{%- if "affiliationNameIdentifierURI" in value -%}{{v["affiliationNameIdentifierURI"]}}{%- else -%}{{"javascript:void(0)"}}{%- endif -%}'>
+                                                            {{v['affiliationNameIdentifier']}}
+                                                        </a><br/>
                                                 {%- endif -%}
-                                            </span>
+                                                {%- endfor -%}
+                                            </br>
                                             </td>
                                         </tr>
                                     {%- endif -%}
