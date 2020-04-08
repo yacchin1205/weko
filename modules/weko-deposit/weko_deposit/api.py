@@ -1001,8 +1001,8 @@ class WekoRecord(Record):
 
             def format_creator_to_show_popup(author, default_lang, dict_temp):
                 dicts = {}
-                arrTest_lang = []
-                arrTest = []
+                arrItem_lang = []
+                arrItem = []
                 for key, value in author.items():
                     if default_lang == None:
                         if "creatorNames" == key:
@@ -1060,17 +1060,17 @@ class WekoRecord(Record):
                                 count_curr_lang += 1
 
                         if count_curr_lang > 0:
-                            arrTest_lang.append(item)
+                            arrItem_lang.append(item)
                         else:
                             count_other_lang = 0
                             for k, v in item.items():
                                 if 'Lang' in k:
                                     count_other_lang += 1
                             if count_other_lang == 0 and default_lang == None:
-                                arrTest.append(item)
+                                arrItem.append(item)
                 else:
-                    dict_temp[default_lang] = arrTest_lang
-                    dict_temp['NoLanguage'] = arrTest
+                    dict_temp[default_lang] = arrItem_lang
+                    dict_temp['NoLanguage'] = arrItem
 
             lst = []
             creator_names = DEPOSIT_RECORDS_UI_CREATOR['creator_names']

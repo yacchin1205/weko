@@ -74,11 +74,11 @@
                                                     {%- if 'creatorName' in v -%}
                                                         {{v['creatorName']}}<br>
                                                     {%- endif -%}
-                                                        {%- if 'familyName' in v -%}
-                                                            {%- if key == 'NoLanguage' -%}
-                                                                {{v['familyName']}}<br />
-                                                {%- else -%}
-                                                                {{v['familyName']}}&nbsp;
+                                                    {%- if 'familyName' in v -%}
+                                                        {%- if key == 'NoLanguage' -%}
+                                                            {{v['familyName']}}<br />
+                                                        {%- else -%}
+                                                            {{v['familyName']}}&nbsp;
                                                         {%- endif -%}
                                                         {%- endif -%}
                                                     {%- if 'givenName' in v -%}
