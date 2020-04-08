@@ -56,7 +56,8 @@ from weko_records.utils import get_all_items, get_attribute_value_all_items, \
 from weko_user_profiles.models import UserProfile
 
 from .config import WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO, \
-    WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY, WEKO_DEPOSIT_SYS_CREATOR_KEY
+    WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY, \
+    WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_SYS_KEY, WEKO_DEPOSIT_SYS_CREATOR_KEY
 from .pidstore import get_latest_version_id, weko_deposit_fetcher, \
     weko_deposit_minter
 from .signals import item_created
@@ -954,113 +955,6 @@ class WekoRecord(Record):
     @property
     def items_show_list(self):
         """Return the item show list."""
-        def get_bibliographic_list(bibliographic_list_meta_data):
-            """
-            Get bibliographic information list.
-
-            :rtype: object
-            """
-            bibliographic_list = []
-            for bibliographic in bibliographic_list_meta_data:
-                title_data, magazine, length = get_bibliographic(bibliographic)
-                bibliographic_list.append({
-                    'title_attribute_name': title_data,
-                    'magazine_attribute_name': magazine,
-                    'length': length
-                })
-            return bibliographic_list
-
-        def get_bibliographic(bibliographic):
-            """
-            Get bibliographic information data.
-
-            :param bibliographic:
-            :return: title_data, magazine, length
-            """
-            title_data = []
-            if bibliographic.get('bibliographic_titles'):
-                title_data = get_source_title(
-                    bibliographic.get('bibliographic_titles'))
-            magazine, length = get_magazine_information(bibliographic)
-            return title_data, magazine, length
-
-        def get_magazine_information(bibliographic):
-            """
-            Get magazine information data.
-
-            :param bibliographic:
-            :return:
-            """
-            magazine_name = WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO
-            magazine = []
-            for name in WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY:
-                if name == 'p.':
-                    page = get_page_tart_and_page_end(
-                        bibliographic.get('bibliographicPageStart'),
-                        bibliographic.get('bibliographicPageEnd'))
-                    if page != '':
-                        magazine.append({name: page})
-                elif name == 'bibliographicIssueDates':
-                    dates = get_issue_dates(
-                        bibliographic.get('bibliographicIssueDates'))
-                    if dates:
-                        magazine.append(
-                            {magazine_name.get(name): " ".join(
-                                str(x) for x in dates)})
-                elif bibliographic.get(name):
-                    magazine.append(
-                        {magazine_name.get(name): bibliographic.get(name)})
-            length = len(magazine) if len(magazine) else 0
-            return magazine, length
-
-        def get_source_title(source_titles):
-            """
-            Get source title.
-
-            :param source_titles:
-            :return:
-            """
-            title_data = []
-            for source_title in source_titles:
-                title = source_title['bibliographic_titleLang'] + ' : ' if \
-                    source_title.get('bibliographic_titleLang') else ''
-                title += source_title[
-                    'bibliographic_title'] if source_title.get(
-                    'bibliographic_title') else ''
-                title_data.append(title)
-            return title_data
-
-        def get_page_tart_and_page_end(page_start, page_end):
-            """
-            Get page start and page end.
-
-            :param page_start:
-            :param page_end:
-            :return:
-            """
-            page = ''
-            page += page_start if page_start is not None else ''
-            temp = page_end if page == '' else '-' + page_end
-            page += temp if page_end else ''
-
-            return page
-
-        def get_issue_dates(issue_dates):
-            """
-            Get issue dates.
-
-            :param issue_dates:
-            :return:
-            """
-            date = []
-            if isinstance(issue_dates, list):
-                for issued_date in issue_dates:
-                    if issued_date.get(
-                        'bibliographicIssueDate') and issued_date.get(
-                            'bibliographicIssueDateType') == 'Issued':
-                        date.append(issued_date.get('bibliographicIssueDate'))
-                return date
-
         try:
 
             items = []
@@ -1118,11 +1012,12 @@ class WekoRecord(Record):
                                             creator_mails]
                                     creators.append(after_format)
                             nval['attribute_value_mlt'] = creators
-                        elif nval['attribute_name'] == \
-                                'Bibliographic Information':
+                        elif self._is_bibliographic(mlt):
+                            print("=======================================")
+                            print(mlt)
+                            print("=======================================")
                             nval['attribute_value_mlt'] = \
-                                get_bibliographic_list(
-                                copy.deepcopy(mlt))
+                                self._get_bibliographic_list(copy.deepcopy(mlt))
                         else:
                             nval['attribute_value_mlt'] = \
                                 get_attribute_value_all_items(
@@ -1136,6 +1031,134 @@ class WekoRecord(Record):
             return items
         except BaseException:
             abort(500)
+
+    def _is_bibliographic(self, meta_data):
+        """Check bibliographic information.
+
+        :param meta_data:
+        """
+        def check_key(_meta_data):
+            for key in WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_SYS_KEY:
+                if key in _meta_data:
+                    return True
+            return False
+
+        if isinstance(meta_data, dict):
+            return check_key(meta_data)
+        elif isinstance(meta_data, list) and len(meta_data) > 0 and isinstance(
+                meta_data[0], dict):
+            return check_key(meta_data[0])
+
+        return False
+
+    def _get_bibliographic_list(self, bibliographic_list_meta_data):
+        """
+        Get bibliographic information list.
+
+        :rtype: object
+        """
+
+        def get_bibliographic(_bibliographic):
+            """
+            Get bibliographic information data.
+
+            :param _bibliographic:
+            :return: title_data, magazine, length
+            """
+            _title_data = []
+            if _bibliographic.get('bibliographic_titles'):
+                _title_data = get_source_title(
+                    _bibliographic.get('bibliographic_titles'))
+            _magazine, _length = get_magazine_information(_bibliographic)
+            return _title_data, _magazine, _length
+
+        def get_magazine_information(_bibliographic):
+            """
+            Get magazine information data.
+
+            :param _bibliographic:
+            :return:
+            """
+            magazine_name = WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO
+            _magazine = []
+            for name in WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY:
+                if name == 'p.':
+                    page = get_page_tart_and_page_end(
+                        _bibliographic.get('bibliographicPageStart'),
+                        _bibliographic.get('bibliographicPageEnd'))
+                    if page != '':
+                        _magazine.append({name: page})
+                elif name == 'bibliographicIssueDates':
+                    dates = get_issue_dates(
+                        _bibliographic.get('bibliographicIssueDates'))
+                    if dates:
+                        _magazine.append(
+                            {magazine_name.get(name): " ".join(
+                                str(x) for x in dates)})
+                elif _bibliographic.get(name):
+                    _magazine.append(
+                        {magazine_name.get(name): _bibliographic.get(name)})
+            _length = len(_magazine) if len(_magazine) else 0
+            return _magazine, _length
+
+        def get_source_title(source_titles):
+            """
+            Get source title.
+
+            :param source_titles:
+            :return:
+            """
+            _title_data = []
+            for source_title in source_titles:
+                title = source_title['bibliographic_titleLang'] + ' : ' if \
+                    source_title.get('bibliographic_titleLang') else ''
+                title += source_title[
+                    'bibliographic_title'] if source_title.get(
+                    'bibliographic_title') else ''
+                _title_data.append(title)
+            return _title_data
+
+        def get_page_tart_and_page_end(page_start, page_end):
+            """
+            Get page start and page end.
+
+            :param page_start:
+            :param page_end:
+            :return:
+            """
+            page = ''
+            page += page_start if page_start is not None else ''
+            temp = page_end if page == '' else '-' + page_end
+            page += temp if page_end else ''
+
+            return page
+
+        def get_issue_dates(issue_dates):
+            """
+            Get issue dates.
+
+            :param issue_dates:
+            :return:
+            """
+            date = []
+            if isinstance(issue_dates, list):
+                for issued_date in issue_dates:
+                    if issued_date.get(
+                        'bibliographicIssueDate') and issued_date.get(
+                            'bibliographicIssueDateType') == 'Issued':
+                        date.append(
+                            issued_date.get('bibliographicIssueDate'))
+                return date
+
+        bibliographic_list = []
+        for bibliographic in bibliographic_list_meta_data:
+            title_data, magazine, length = get_bibliographic(bibliographic)
+            bibliographic_list.append({
+                'title_attribute_name': title_data,
+                'magazine_attribute_name': magazine,
+                'length': length
+            })
+        return bibliographic_list
 
     def format_creator(self, author, after_format, default_lang, list_lang):
         """Format Creator.

@@ -141,7 +141,6 @@ WEKO_DEPOSIT_SYS_CREATOR_KEY = {
     'alternative_lang': 'creatorAlternativeLang',
     'identifiers': 'nameIdentifiers',
     'creator_mails': 'creatorMails'
-
 }
 """System creator key"""
 
@@ -153,6 +152,17 @@ WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY = [
     'bibliographicIssueDates'
 ]
 """Key of Bibliographic information."""
+
+WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_SYS_KEY = [
+    'bibliographicVolumeNumber',
+    'bibliographicNumberOfPages',
+    'bibliographic_titles',
+    'bibliographicPageEnd',
+    'bibliographicPageStart',
+    'bibliographicIssueDates',
+    'bibliographicIssueNumber'
+]
+"""Bibliographic information sys key."""
 
 WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO = {
     'bibliographicVolumeNumber': 'Volume',
