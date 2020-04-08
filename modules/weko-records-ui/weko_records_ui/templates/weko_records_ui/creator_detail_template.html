@@ -19,17 +19,19 @@
  #}
 
 {% macro output_creator_data(attribute_value_mlt) %}
-    {%- set index = 0 -%}
+    {% set random1 = range(1, 100) | random | int %}
+    {% set random2 = range(1, 1000) | random | int %}
+    {%- set index = random1 + random2 -%}
     {%- for attribute_data in attribute_value_mlt -%}
         {%- set index = index + loop.index -%}
         {%- if 'name' in  attribute_data -%}
-            <a class='creator-name' href="javascript:void(0)" data-toggle="popover-x" data-target="#creator{{index}}" data-placement="top top-left" data-toggle="popover">
+            <a class='creator-name' href="javascript:void(0)" data-toggle="popover-x" data-target="#creator_{{index}}" data-placement="auto" data-toggle="popover">
                 {%- for name in attribute_data['name'] -%}
                     {{ name }}<span> </span>
                 {%- endfor -%}
             </a><br>
         {%- endif -%}
-        <div id="creator{{index}}" class="popover popover-x popover-default">
+        <div id="creator_{{index}}" class="popover popover-x popover-default">
             <div class="arrow"></div>
             <h1 class="popover-header popover-title"><strong><span class="close pull-right" data-dismiss="popover-x">&times;</span>
                 {%- if 'name' in  attribute_data -%}
