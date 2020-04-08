@@ -55,8 +55,8 @@ from weko_records.utils import get_all_items, get_attribute_value_all_items, \
     get_options_and_order_list, json_loader, set_timestamp
 from weko_user_profiles.models import UserProfile
 
-from .config import DEPOSIT_RECORDS_UI_CREATOR, MAGAZINE_INFORMATION, \
-    MAGAZINE_INFORMATION_KEY
+from .config import WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO, \
+    WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY, WEKO_DEPOSIT_SYS_CREATOR_KEY
 from .pidstore import get_latest_version_id, weko_deposit_fetcher, \
     weko_deposit_minter
 from .signals import item_created
@@ -954,191 +954,6 @@ class WekoRecord(Record):
     @property
     def items_show_list(self):
         """Return the item show list."""
-        def get_name_iddentifier_uri(mlt):
-            for m in mlt:
-                if m.get('nameIdentifiers'):
-                    for v in m.get('nameIdentifiers'):
-                        name = v.get('nameIdentifier')
-                        if name:
-                            uri = ''
-                            if v.get('nameIdentifierURI'):
-                                uri = v.get('nameIdentifierURI')
-                            elif v.get('nameIdentifierScheme'):
-                                uri = 'http://' \
-                                      + v.get('nameIdentifierScheme') \
-                                      + '.io/' + name
-                            v['nameIdentifier'] = dict(name=name, uri=uri)
-            return mlt
-
-        def format_creator(author, after_format, default_lang, list_lang):
-            def format_creator_to_show_detail(author, default_lang, parent_key,
-                                              lst):
-                # Get creator name to show on item detail.
-                name_key = ''
-                lang_key = ''
-                if parent_key == DEPOSIT_RECORDS_UI_CREATOR['creator_names']:
-                    name_key = DEPOSIT_RECORDS_UI_CREATOR['creator_name']
-                    lang_key = DEPOSIT_RECORDS_UI_CREATOR['creator_lang']
-                elif parent_key == DEPOSIT_RECORDS_UI_CREATOR['family_names']:
-                    name_key = DEPOSIT_RECORDS_UI_CREATOR['family_name']
-                    lang_key = DEPOSIT_RECORDS_UI_CREATOR['family_lang']
-                elif parent_key == DEPOSIT_RECORDS_UI_CREATOR['given_names']:
-                    name_key = DEPOSIT_RECORDS_UI_CREATOR['given_name']
-                    lang_key = DEPOSIT_RECORDS_UI_CREATOR['given_lang']
-                elif parent_key == DEPOSIT_RECORDS_UI_CREATOR[
-                        'alternative_names']:
-                    name_key = DEPOSIT_RECORDS_UI_CREATOR['alternative_name']
-                    lang_key = DEPOSIT_RECORDS_UI_CREATOR['alternative_lang']
-                if parent_key in author:
-                    lst_value = author[parent_key]
-                    if len(lst_value) > 0:
-                        for i in range(len(lst_value)):
-                            if lst_value[i] and lst_value[i].get(
-                                    lang_key) == default_lang:
-                                lst.append(
-                                    lst_value[i][name_key])
-                                break
-
-            def format_creator_to_show_popup(author, default_lang, dict_temp):
-                dicts = {}
-                arrItem_lang = []
-                arrItem = []
-                for key, value in author.items():
-                    if default_lang == None:
-                        if "creatorNames" == key:
-                            dicts[0] = value
-
-                        if key == "familyNames":
-                            dicts[1] = value
-
-                        if key == "givenNames":
-                            dicts[2] = value
-
-                        if key == "creatorAlternatives":
-                            dicts[3] = value
-
-                        if key == "affiliation":
-                            dicts[4] = value
-
-                        if key == "nameIdentifiers":
-                            dicts[5] = value
-
-                    elif "creatorNames" in author:
-                        if "creatorNames" == key:
-                            dicts[0] = value
-
-                        if key == "creatorAlternatives":
-                            dicts[1] = value
-
-                        if key == "affiliation":
-                            dicts[2] = value
-
-                        if key == "nameIdentifiers":
-                            dicts[3] = value
-
-                    else:
-                        if key == "familyNames":
-                            dicts[0] = value
-
-                        if key == "givenNames":
-                            dicts[1] = value
-
-                        if key == "creatorAlternatives":
-                            dicts[2] = value
-
-                        if key == "affiliation":
-                            dicts[3] = value
-
-                        if key == "nameIdentifiers":
-                            dicts[4] = value
-
-                for key, value in dicts.items():
-                    for item in value:
-                        count_curr_lang = 0
-                        for k, v in item.items():
-                            if v == default_lang and 'Lang' in k:
-                                count_curr_lang += 1
-
-                        if count_curr_lang > 0:
-                            arrItem_lang.append(item)
-                        else:
-                            count_other_lang = 0
-                            for k, v in item.items():
-                                if 'Lang' in k:
-                                    count_other_lang += 1
-                            if count_other_lang == 0 and default_lang == None:
-                                arrItem.append(item)
-                else:
-                    dict_temp[default_lang] = arrItem_lang
-                    dict_temp['NoLanguage'] = arrItem
-
-            lst = []
-            creator_names = DEPOSIT_RECORDS_UI_CREATOR['creator_names']
-            family_names = DEPOSIT_RECORDS_UI_CREATOR['family_names']
-            given_names = DEPOSIT_RECORDS_UI_CREATOR['given_names']
-            alternative_names = DEPOSIT_RECORDS_UI_CREATOR['alternative_names']
-            list_parent_key = [creator_names, family_names, given_names,
-                               alternative_names]
-            for parent_key in list_parent_key:
-                format_creator_to_show_detail(author, default_lang, parent_key,
-                                              lst)
-                if lst:
-                    break
-            # if lst is None when chose default language
-            if not lst:
-                for lang in list_lang:
-                    for parent_key in list_parent_key:
-                        format_creator_to_show_detail(author, lang, parent_key,
-                                                      lst)
-                        if lst:
-                            break
-                    if lst:
-                        break
-            # if lst is None when chose priority language
-            if not lst:
-                for parent_key in list_parent_key:
-                    format_creator_to_show_detail(author, None, parent_key,
-                                                  lst)
-                    if lst:
-                        break
-            after_format['name'] = lst
-            list_temp = []
-            dict_temp = {}
-            # Format data by key is language default.
-            format_creator_to_show_popup(author, default_lang, dict_temp)
-            if dict_temp:
-                list_temp.append(dict_temp)
-                dict_temp = {}
-
-            # Format data by key if language is ja-Kana.
-            if default_lang == "ja":
-                dict_temp = {}
-                format_creator_to_show_popup(author, 'ja-Kana', dict_temp)
-                if dict_temp:
-                    list_temp.append(dict_temp)
-                    dict_temp = {}
-
-            # If list_temp not None when get value by default language
-            if list_temp:
-                list_lang.remove(default_lang)
-
-            # Get value by priority language
-            for lang in list_lang:
-                format_creator_to_show_popup(author, lang, dict_temp)
-                if dict_temp:
-                    list_temp.append(dict_temp)
-                    dict_temp = {}
-                if lang == 'ja':
-                    format_creator_to_show_popup(author, 'ja-Kana', dict_temp)
-                    if dict_temp:
-                        list_temp.append(dict_temp)
-                        dict_temp = {}
-            # Get value have no language
-            format_creator_to_show_popup(author, None, dict_temp)
-            if dict_temp:
-                list_temp.append(dict_temp)
-            after_format.update({'order_lang': list_temp})
-
         def get_bibliographic_list(bibliographic_list_meta_data):
             """
             Get bibliographic information list.
@@ -1176,9 +991,9 @@ class WekoRecord(Record):
             :param bibliographic:
             :return:
             """
-            magazine_name = MAGAZINE_INFORMATION
+            magazine_name = WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO
             magazine = []
-            for name in MAGAZINE_INFORMATION_KEY:
+            for name in WEKO_DEPOSIT_BIBLIOGRAPHIC_INFO_KEY:
                 if name == 'p.':
                     page = get_page_tart_and_page_end(
                         bibliographic.get('bibliographicPageStart'),
@@ -1269,7 +1084,6 @@ class WekoRecord(Record):
 
                 mlt = val.get('attribute_value_mlt')
                 if mlt is not None:
-
                     nval = dict()
                     nval['attribute_name'] = val.get('attribute_name')
                     nval['attribute_type'] = val.get('attribute_type')
@@ -1289,12 +1103,12 @@ class WekoRecord(Record):
                             if mlt:
                                 for author in mlt:
                                     after_format = {}
-                                    format_creator(author, after_format,
-                                                   current_i18n.language,
-                                                   list_lang.copy())
-                                    identifiers = DEPOSIT_RECORDS_UI_CREATOR[
+                                    self.format_creator(author, after_format,
+                                                        current_i18n.language,
+                                                        list_lang.copy())
+                                    identifiers = WEKO_DEPOSIT_SYS_CREATOR_KEY[
                                         'identifiers']
-                                    creator_mails = DEPOSIT_RECORDS_UI_CREATOR[
+                                    creator_mails = WEKO_DEPOSIT_SYS_CREATOR_KEY[
                                         'creator_mails']
                                     if identifiers in author:
                                         after_format[identifiers] = author[
@@ -1322,6 +1136,193 @@ class WekoRecord(Record):
             return items
         except BaseException:
             abort(500)
+
+    def format_creator(self, author, after_format, default_lang, list_lang):
+        """Format Creator.
+
+        :param author:
+        :param after_format:
+        :param default_lang:
+        :param list_lang:
+        """
+
+        def format_creator_to_show_detail(_author, _default_lang, _parent_key,
+                                          _name_lst):
+            """Format creator to show detail.
+
+            :param _author:
+            :param _default_lang:
+            :param _parent_key:
+            :param _name_lst:
+            """
+            # Get creator name to show on item detail.
+            name_key = ''
+            lang_key = ''
+            if _parent_key == WEKO_DEPOSIT_SYS_CREATOR_KEY['creator_names']:
+                name_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['creator_name']
+                lang_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['creator_lang']
+            elif _parent_key == WEKO_DEPOSIT_SYS_CREATOR_KEY['family_names']:
+                name_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['family_name']
+                lang_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['family_lang']
+            elif _parent_key == WEKO_DEPOSIT_SYS_CREATOR_KEY['given_names']:
+                name_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['given_name']
+                lang_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['given_lang']
+            elif _parent_key == WEKO_DEPOSIT_SYS_CREATOR_KEY[
+                    'alternative_names']:
+                name_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['alternative_name']
+                lang_key = WEKO_DEPOSIT_SYS_CREATOR_KEY['alternative_lang']
+            if _parent_key in _author:
+                lst_value = _author[_parent_key]
+                if len(lst_value) > 0:
+                    for i in range(len(lst_value)):
+                        if lst_value[i] and lst_value[i].get(
+                                lang_key) == _default_lang:
+                            _name_lst.append(
+                                lst_value[i][name_key])
+                            break
+
+        def format_creator_to_show_popup(_author, _dict_temp,
+                                         _default_lang=None):
+            dicts = {}
+            arr_item_lang = []
+            arr_item = []
+            for key, value in _author.items():
+                if _default_lang is None:
+                    if "creatorNames" == key:
+                        dicts[0] = value
+
+                    if key == "familyNames":
+                        dicts[1] = value
+
+                    if key == "givenNames":
+                        dicts[2] = value
+
+                    if key == "creatorAlternatives":
+                        dicts[3] = value
+
+                    if key == "affiliation":
+                        dicts[4] = value
+
+                    if key == "nameIdentifiers":
+                        dicts[5] = value
+
+                elif "creatorNames" in _author:
+                    if "creatorNames" == key:
+                        dicts[0] = value
+
+                    if key == "creatorAlternatives":
+                        dicts[1] = value
+
+                    if key == "affiliation":
+                        dicts[2] = value
+
+                    if key == "nameIdentifiers":
+                        dicts[3] = value
+
+                else:
+                    if key == "familyNames":
+                        dicts[0] = value
+
+                    if key == "givenNames":
+                        dicts[1] = value
+
+                    if key == "creatorAlternatives":
+                        dicts[2] = value
+
+                    if key == "affiliation":
+                        dicts[3] = value
+
+                    if key == "nameIdentifiers":
+                        dicts[4] = value
+
+            for key, value in dicts.items():
+                for item in value:
+                    count_curr_lang = 0
+                    for k, v in item.items():
+                        if v == _default_lang and 'Lang' in k:
+                            count_curr_lang += 1
+
+                    if count_curr_lang > 0:
+                        arr_item_lang.append(item)
+                    else:
+                        count_other_lang = 0
+                        for k, v in item.items():
+                            if 'Lang' in k:
+                                count_other_lang += 1
+                        if count_other_lang == 0 and _default_lang is None:
+                            arr_item.append(item)
+            else:
+                _dict_temp[_default_lang] = arr_item_lang
+                _dict_temp['NoLanguage'] = arr_item
+
+        name_lst = []
+        creator_names = WEKO_DEPOSIT_SYS_CREATOR_KEY['creator_names']
+        family_names = WEKO_DEPOSIT_SYS_CREATOR_KEY['family_names']
+        given_names = WEKO_DEPOSIT_SYS_CREATOR_KEY['given_names']
+        alternative_names = WEKO_DEPOSIT_SYS_CREATOR_KEY['alternative_names']
+        list_parent_key = [creator_names, family_names, given_names,
+                           alternative_names]
+        for parent_key in list_parent_key:
+            format_creator_to_show_detail(author, default_lang, parent_key,
+                                          name_lst)
+            if name_lst:
+                break
+        # if lst is None when chose default language
+        if not name_lst:
+            for lang in list_lang:
+                for parent_key in list_parent_key:
+                    format_creator_to_show_detail(author, lang, parent_key,
+                                                  name_lst)
+                    if name_lst:
+                        break
+                if name_lst:
+                    break
+        # if lst is None when chose priority language
+        if not name_lst:
+            for parent_key in list_parent_key:
+                format_creator_to_show_detail(author, None, parent_key,
+                                              name_lst)
+                if name_lst:
+                    break
+        after_format['name'] = name_lst
+        list_temp = []
+        dict_temp = {}
+        ja_kana_lang_code = "ja-Kana"
+        # Format data by key is language default.
+        format_creator_to_show_popup(author, dict_temp, default_lang)
+        if dict_temp:
+            list_temp.append(dict_temp)
+            dict_temp = {}
+
+        # Format data by key if language is ja-Kana.
+        if default_lang == "ja":
+            dict_temp = {}
+            format_creator_to_show_popup(author, dict_temp, ja_kana_lang_code)
+            if dict_temp:
+                list_temp.append(dict_temp)
+                dict_temp = {}
+
+        # If list_temp not None when get value by default language
+        if list_temp:
+            list_lang.remove(default_lang)
+
+        # Get value by priority language
+        for lang in list_lang:
+            format_creator_to_show_popup(author, dict_temp, lang)
+            if dict_temp:
+                list_temp.append(dict_temp)
+                dict_temp = {}
+            if lang == 'ja':
+                format_creator_to_show_popup(author, dict_temp,
+                                             ja_kana_lang_code)
+                if dict_temp:
+                    list_temp.append(dict_temp)
+                    dict_temp = {}
+        # Get value have no language
+        format_creator_to_show_popup(author, dict_temp)
+        if dict_temp:
+            list_temp.append(dict_temp)
+        after_format.update({'order_lang': list_temp})
 
     @property
     def pid_doi(self):
