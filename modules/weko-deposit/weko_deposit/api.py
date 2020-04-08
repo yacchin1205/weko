@@ -1013,9 +1013,6 @@ class WekoRecord(Record):
                                     creators.append(after_format)
                             nval['attribute_value_mlt'] = creators
                         elif self._is_bibliographic(mlt):
-                            print("=======================================")
-                            print(mlt)
-                            print("=======================================")
                             nval['attribute_value_mlt'] = \
                                 self._get_bibliographic_list(copy.deepcopy(mlt))
                         else:
