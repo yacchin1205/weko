@@ -1002,8 +1002,9 @@ class WekoRecord(Record):
                                                         list_lang.copy())
                                     identifiers = WEKO_DEPOSIT_SYS_CREATOR_KEY[
                                         'identifiers']
-                                    creator_mails = WEKO_DEPOSIT_SYS_CREATOR_KEY[
-                                        'creator_mails']
+                                    creator_mails = \
+                                        WEKO_DEPOSIT_SYS_CREATOR_KEY[
+                                            'creator_mails']
                                     if identifiers in author:
                                         after_format[identifiers] = author[
                                             identifiers]
@@ -1123,12 +1124,14 @@ class WekoRecord(Record):
             :param page_end:
             :return:
             """
-            page = ''
-            page += page_start if page_start is not None else ''
-            temp = page_end if page == '' else '-' + page_end
-            page += temp if page_end else ''
-
-            return page
+            if not page_start and not page_end:
+                return ''
+            elif not page_start:
+                return page_end
+            elif not page_end:
+                return page_start
+            else:
+                return page_start + '-' + page_end
 
         def get_issue_dates(issue_dates):
             """
