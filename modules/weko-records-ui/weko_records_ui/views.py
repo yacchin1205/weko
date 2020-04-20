@@ -44,7 +44,9 @@ from weko_deposit.api import WekoIndexer, WekoRecord
 from weko_deposit.pidstore import get_record_without_version
 from weko_index_tree.models import IndexStyle
 from weko_index_tree.utils import get_index_link_list
+from weko_items_ui.utils import is_schema_include_key
 from weko_records.api import ItemLink
+from weko_records.models import ItemType
 from weko_records.serializers import citeproc_v1
 from weko_search_ui.api import get_search_detail_keyword
 from weko_workflow.api import WorkFlow
@@ -472,6 +474,16 @@ def default_view_method(pid, record, filename=None, template=None, **kwargs):
         display_stats = True
 
     groups_price = get_groups_price(record)
+
+    is_billing_file = False
+    item_type_id = record.get('item_type_id')
+    if item_type_id:
+        item_type = ItemType.query.filter_by(id=item_type_id).one_or_none()
+        if item_type:
+            need_file, need_billing_file = is_schema_include_key(item_type.schema)
+
+    is_billing_file = need_billing_file
+
     billing_files_permission = get_billing_file_download_permission(
         groups_price) if groups_price else None
     billing_files_prices = get_min_price_billing_file_download(
@@ -496,8 +508,7 @@ def default_view_method(pid, record, filename=None, template=None, **kwargs):
             filter_by(is_thumbnail=True).all()
     files = []
     for f in record.files:
-        if check_file_permission(record, f.data) or is_open_restricted(f.data):
-            files.append(f)
+        files.append(f)
     # Flag: can edit record
     can_edit = True if pid == get_record_without_version(pid) else False
 
@@ -530,6 +541,7 @@ def default_view_method(pid, record, filename=None, template=None, **kwargs):
         files_thumbnail=files_thumbnail,
         can_edit=can_edit,
         open_day_display_flg=open_day_display_flg,
+        is_billing_file=is_billing_file,
         **ctx,
         **kwargs
     )

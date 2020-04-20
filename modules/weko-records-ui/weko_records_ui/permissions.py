@@ -145,7 +145,8 @@ def check_file_download_permission(record, fjson):
                                 check_user_group_permission(group_id)
                             break
                     is_can = is_can & is_user_group_permission
-                else:
+                # Content file permission check
+                elif fjson.get('groups'):
                     is_can = is_can & check_user_group_permission(
                         fjson.get('groups'))
 
@@ -194,7 +195,7 @@ def is_open_restricted(file_data):
 def check_content_clickable(record, fjson):
     """Check if content file is clickable."""
     if not is_open_restricted(fjson):
-        return False
+        return True
     user_id = current_user.get_id()
     record_id = record.get('recid')
     file_name = fjson.get('filename')

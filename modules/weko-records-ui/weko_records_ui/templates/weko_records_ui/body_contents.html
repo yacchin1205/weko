@@ -74,7 +74,7 @@
                 {%- set img = file.mimetype | get_image_src -%}
                 {%- set file_url = url_for('invenio_records_ui.recid_files', pid_value=pid.pid_value,
                     filename=file.key) %}
-                {%- set is_billing_file = False -%}
+
                 {%- set billing_file_data = "" -%}
                 {%- set billing_file_url = "" -%}
                 {%- set billing_file_class = "" -%}
@@ -82,12 +82,11 @@
 
                 {%- if billing_files_permission -%}
                   {%- set billing_file_permission = billing_files_permission.get(file.filename) -%}
-                  {%- set is_billing_file = True -%}
-                  {%- set billing_file_class = " billing-file" -%}
-                  {%- set file_url = "JavaScript:void(0);" -%}
                 {%- endif %}
 
+
                 {%- set access_permission = record | check_file_permission(file.info()) -%}
+
                 {%- set file_details_url = url_for('invenio_records_ui.recid_file_details', pid_value=pid.pid_value,
                     filename=file.key) %}
 
@@ -99,10 +98,15 @@
                   <td class="filename-td">
                     <span class="filename">
                       <img src="{{img}}" alt={{ file.filename }} />
-                      {%- if not file.groupsprice and not access_permission and file.accessrole == 'open_login' -%}
+                      {%- if access_permission -%}
+                        {%- set billing_file_url = "data-billing-file-url=" + url_for('invenio_records_ui.recid_files', pid_value=pid.pid_value, filename=file.key) -%}
+                        {%- set file_url = url_for('invenio_records_ui.recid_files', pid_value=pid.pid_value, filename=file.key) -%}
+                      {%- elif not file.groupsprice and not access_permission and file.accessrole == 'open_login' and not is_billing_file -%}
                         {%- set file_url = url_for_security('login', next=request.path) -%}
                         {%- set billing_file_class = "" -%}
                       {%- elif is_billing_file or file.groupsprice -%}
+                        {%- set billing_file_class = " billing-file" -%}
+                        {%- set file_url = "JavaScript:void(0);" -%}
                         {%- if not session['user_id'] -%}
                           {%- set file_url = url_for_security('login', next=request.path) -%}
                           {%- set billing_file_class = "" -%}
@@ -110,6 +114,7 @@
                           {%- set billing_file_url = "data-billing-file-url=" + url_for('invenio_records_ui.recid_files', pid_value=pid.pid_value, filename=file.key) -%}
                           {%- set billing_file_data = "data-billing-file-permission=true data-billing-file-price=" + billing_files_prices.get(file.filename)|string -%}
                         {%- else -%}
+
                           {%- set billing_file_data = "data-billing-file-permission=false" -%}
                           <input id="download_permission_error" type="hidden"
                           value="{{_('The file cannot be downloaded because you do not have permission to view this file.')}}" />
@@ -123,11 +128,11 @@
                         <a class="forcewrap{{ billing_file_class }}" {{ billing_file_data }} {{ billing_file_url }}
                            href={{ file_url }}>{{ file.filename }} ({{ file.size|filesizeformat }})</a>
                         <br>
-                      {%- elif clickable -%}
+                      {%- elif clickable and file.accessrole == 'open_restricted'-%}
                         {{ check_download_file(record, file, permission, community, url_for_security, is_file_name_url) }}
                       {%- else -%}
                         <a class="forcewrap{{ billing_file_class }}" {{ billing_file_data }} {{ billing_file_url }}
-                        >{{ file.filename }} ({{ file.size|filesizeformat }})</a>
+                        href={{ file_url }}>{{ file.filename }} ({{ file.size|filesizeformat }})</a>
                         <br>
                       {%- endif -%}
 
@@ -185,7 +190,7 @@
                         {{_('Download')}}
                       </button>
                     </a>
-                    {%- elif clickable -%}
+                    {%- elif clickable and file.accessrole == 'open_restricted'-%}
                         {{ check_download_file(record, file, permission, community, url_for_security, is_file_name_url) }}
                     {%- else -%}
                     <a class="action-anchor" href="">
