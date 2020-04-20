@@ -608,6 +608,7 @@ def set_pdfcoverpage_header():
         header_output_image_filename = header_output_image_file.filename
         header_output_image = record.header_output_image
         if not header_output_image_filename == '':
+            # /home/invenio/.virtualenvs/invenio/var/instance/static/
             upload_dir = current_app.instance_path + current_app.config.get(
                 'WEKO_RECORDS_UI_PDF_HEADER_IMAGE_DIR')
             header_output_image = upload_dir + header_output_image_filename
