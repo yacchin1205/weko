@@ -335,18 +335,15 @@
           }
         },
         "description": {
-          "type": "object",
-          "properties": {
-            "value": {
-              "type": "keyword",
-              "copy_to": [
-                "search_des"
-              ]
-            },
-            "descriptionType": {
-              "type": "keyword"
-            }
-          }
+          "type": "keyword",
+          "index" : true,
+          "copy_to": [
+            "search_des"
+          ]
+        },
+        "descriptionType": {
+          "type": "keyword",
+          "index" : true
         },
         "publisher": {
           "type": "text",

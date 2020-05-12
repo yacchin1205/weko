@@ -129,7 +129,7 @@ WEKO_FACETED_SEARCH_MAPPING = {
     'accessRights': 'accessRights',
     'language': 'language',
     'distributor': 'contributor.contributorName',
-    'dataType': 'description.value'
+    'dataType': 'description'
 }
 
 RECORDS_REST_FACETS[SEARCH_UI_SEARCH_INDEX] = dict(
@@ -150,7 +150,7 @@ RECORDS_REST_FACETS[SEARCH_UI_SEARCH_INDEX] = dict(
         ),
         dataType=dict(
             filter=dict(
-                term={"description.descriptionType": "Other"}
+                term={"descriptionType": "Other"}
             ),
             aggs=dict(
                 dataType=dict(
