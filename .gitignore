@@ -47,6 +47,7 @@ coverage.xml
 *.cover
 test.db
 app.db
+venv/
 
 # Translations
 # *.mo
