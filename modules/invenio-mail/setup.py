@@ -16,7 +16,6 @@ readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
 tests_require = [
-    'SQLAlchemy-Continuum>=1.3.6',
     'check-manifest>=0.25',
     'coverage>=4.0',
     'isort>=4.2.2',
