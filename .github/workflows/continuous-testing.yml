@@ -83,15 +83,14 @@ jobs:
           source venv/bin/activate
       - name: Install python dependencies
         run: |
-          sed -i 's/\/code\///g' packages-invenio.txt
-          sed -i 's/\/code\///g' requirements-weko-modules.txt
+          python -m pip install -U setuptools wheel pip coveralls PyYAML
           python -m pip install -r packages.txt
           python -m pip install -r packages-invenio.txt
-          python -m pip install -r requirements-weko-modules.txt
-          python -m pip install coveralls PyYAML
+          sed -E 's/-e \/code\///g' requirements-weko-modules.txt | xargs python -m pip install
+          python -m pip install 'coverage>=4.5.3,<5.0.0' 'pytest>=4.6.4,<5.0.0'
       - name: Run tests
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          cd modules/${{ matrix.module }} && python -m pip install . && python setup.py test || coveralls; false
+          cd modules/${{ matrix.module }} && python setup.py test || coveralls; false
           coveralls
