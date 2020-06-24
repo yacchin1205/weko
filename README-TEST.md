@@ -38,7 +38,7 @@ python -m pip install 'pytest>=4.6.4,<5.0.0' 'coverage>=4.5.3,<5.0.0' 'mock==3.0
 #### Run single module
 
 ```shell
-pytest modules/weko-bulkupdate
+python -m pytest modules/weko-bulkupdate
 # OR
 cd modules/weko-bulkupdate && python setup.py test
 ```
@@ -46,7 +46,7 @@ cd modules/weko-bulkupdate && python setup.py test
 #### Run single test
 
 ```shell
-pytest modules/weko-bulkupdate/tests/test_examples_app.py::test_example_app_role_admin
+python -m pytest modules/weko-bulkupdate/tests/test_examples_app.py::test_example_app_role_admin
 ```
 
 ## Running inside docker container
