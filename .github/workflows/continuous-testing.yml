@@ -91,6 +91,7 @@ jobs:
       - name: Run tests
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          RUN_COVERALLS: pwd && cp modules/${{ matrix.module }}/.coverage ./ && coveralls
         run: |
-          cd modules/${{ matrix.module }} && python setup.py test || coveralls; false
-          coveralls
+          (cd modules/${{ matrix.module }} && python setup.py test) || ${RUN_COVERALLS}; false
+          ${RUN_COVERALLS}
