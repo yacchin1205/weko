@@ -85,9 +85,6 @@ jobs:
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          pwd
-          ls -a modules/${{ matrix.module }}
-          ls -a
           cp modules/${{ matrix.module }}/.coverage ./
-          ls -a
+          coverage report
           coveralls
