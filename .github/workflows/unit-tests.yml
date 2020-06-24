@@ -86,5 +86,4 @@ jobs:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
           cp modules/${{ matrix.module }}/.coverage ./
-          coveralls debug
           coveralls
