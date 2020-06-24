@@ -1,5 +1,54 @@
 # Running tests locally
 
+## Running with venv
+
+### Install python 3.5.x
+
+I recommend 3.5.9, but older versions may work as well.
+To install it you can use pyenv.
+It is personal preference,
+but I also like to create venv so I can easily delete it and recreate if needed.
+
+```shell
+pyenv install 3.5.9
+pyenv global 3.5.9
+python -m venv venv
+pyenv global system
+source venv/bin/activate
+```
+
+### Install python dependencies
+
+```shell
+python -m pip install -U setuptools wheel pip
+python -m pip install -r packages.txt
+python -m pip install -r packages-invenio.txt
+sed -E 's/\/code\///g' requirements-weko-modules.txt | xargs python -m pip install
+python -m pip install 'pytest>=4.6.4,<5.0.0' 'coverage>=4.5.3,<5.0.0' 'mock==3.0.5' pytest-cov pytest-invenio responses
+```
+
+### Run the tests
+
+#### Run all modules
+
+```shell
+./run-tests.sh
+```
+
+#### Run single module
+
+```shell
+pytest modules/weko-bulkupdate
+# OR
+cd modules/weko-bulkupdate && python setup.py test
+```
+
+#### Run single test
+
+```shell
+pytest modules/weko-bulkupdate/tests/test_examples_app.py::test_example_app_role_admin
+```
+
 ## Running inside docker container
 
 ### Adjust file permissions
@@ -67,6 +116,8 @@ docker-compose exec web ./run-tests.sh
 
 ```shell
 docker-compose exec web pytest modules/weko-bulkupdate
+# OR
+docker-compose exec web sh -c 'cd modules/weko-bulkupdate && python setup.py test'
 ```
 
 #### Run single test
