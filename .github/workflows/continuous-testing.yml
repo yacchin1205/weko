@@ -92,6 +92,10 @@ jobs:
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          (cd modules/${{ matrix.module }} && python setup.py test) || cp modules/${{ matrix.module }}/.coverage ./; coveralls; false
+          cd modules/${{ matrix.module }}
+          python setup.py test
+      - name: Coveralls
+        if: ${{ success() || failure() }}
+        run: |
           cp modules/${{ matrix.module }}/.coverage ./
           coveralls
