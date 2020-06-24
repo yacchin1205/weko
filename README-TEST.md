@@ -24,7 +24,7 @@ python -m pip install -U setuptools wheel pip
 python -m pip install -r packages.txt
 python -m pip install -r packages-invenio.txt
 sed -E 's/\/code\///g' requirements-weko-modules.txt | xargs python -m pip install
-python -m pip install 'pytest>=4.6.4,<5.0.0' 'coverage>=4.5.3,<5.0.0' 'mock==3.0.5' pytest-cov pytest-invenio responses
+python -m pip install 'pytest>=4.6.4,<5.0.0' 'coverage>=4.5.3,<5.0.0' 'mock==3.0.5' 'moto==1.3.5' pytest-cov pytest-invenio responses
 ```
 
 ### Run the tests
@@ -101,7 +101,7 @@ chmod g+w .
 Run the following command to install test packages inside your docker container.
 
 ```shell
-docker-compose exec web sh -c 'pip install -U pytest && pip install coverage==4.5.4 pytest==5.4.3 pytest-cov pytest-invenio mock responses moto'
+docker-compose exec web sh -c "pip install 'pytest>=4.6.4,<5.0.0' 'coverage>=4.5.3,<5.0.0' 'mock==3.0.5' 'moto==1.3.5' pytest-cov pytest-invenio responses"
 ```
 
 ### Run the tests
