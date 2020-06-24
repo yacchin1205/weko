@@ -16,7 +16,7 @@ history = open('CHANGES.rst').read()
 
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
-    'mock',
+    'mock>=3.0.0,<4.0.0',
     'pytest>=4.6.4,<5.0.0',
     'pytest-cache',
     'pytest-cov',
