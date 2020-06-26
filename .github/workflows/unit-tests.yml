@@ -11,42 +11,42 @@ jobs:
       matrix:
         module:
           - invenio-communities
-          # - invenio-deposit
-          # - invenio-files-rest
-          # - invenio-mail
-          # - invenio-oaiharvester
-          # - invenio-oaiserver
-          # - invenio-oauth2server
-          # - invenio-previewer
-          # - invenio-records
-          # - invenio-records-rest
-          # - invenio-resourcesyncclient
-          # - invenio-resourcesyncserver
-          # - invenio-s3
-          # - invenio-stats
-          # - weko-accounts
-          # - weko-admin
-          # - weko-authors
-          # - weko-bulkupdate
-          # - weko-deposit
-          # - weko-gridlayout
-          # - weko-groups
-          # - weko-handle
-          # - weko-index-tree
-          # - weko-indextree-journal
-          # - weko-items-autofill
-          # - weko-items-ui
-          # - weko-itemtypes-ui
-          # - weko-logging
-          # - weko-plugins
-          # - weko-records
-          # - weko-records-ui
-          # - weko-schema-ui
-          # - weko-search-ui
-          # - weko-sitemap
-          # - weko-theme
-          # - weko-user-profiles
-          # - weko-workflow
+          - invenio-deposit
+          - invenio-files-rest
+          - invenio-mail
+          - invenio-oaiharvester
+          - invenio-oaiserver
+          - invenio-oauth2server
+          - invenio-previewer
+          - invenio-records
+          - invenio-records-rest
+          - invenio-resourcesyncclient
+          - invenio-resourcesyncserver
+          - invenio-s3
+          - invenio-stats
+          - weko-accounts
+          - weko-admin
+          - weko-authors
+          - weko-bulkupdate
+          - weko-deposit
+          - weko-gridlayout
+          - weko-groups
+          - weko-handle
+          - weko-index-tree
+          - weko-indextree-journal
+          - weko-items-autofill
+          - weko-items-ui
+          - weko-itemtypes-ui
+          - weko-logging
+          - weko-plugins
+          - weko-records
+          - weko-records-ui
+          - weko-schema-ui
+          - weko-search-ui
+          - weko-sitemap
+          - weko-theme
+          - weko-user-profiles
+          - weko-workflow
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -89,8 +89,8 @@ jobs:
           cp modules/${{ matrix.module }}/.coverage ./
           coveralls
 
-  coveralls_finish:
-    name: Coveralls finish
+  coveralls:
+    name: Coveralls webhook
     needs: test
     if: ${{ success() || failure() }}
     runs-on: ubuntu-18.04
@@ -98,6 +98,4 @@ jobs:
       - name: Send webhook
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
-        run: |
-          echo "payload[build_num]=${GITHUB_SHA}$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo -PR-$(echo ${GITHUB_REF} | cut -d / -f 3))&payload[status]=done"
-          curl -k https://coveralls.io/webhook?repo_token=${COVERALLS_REPO_TOKEN} -d "payload[build_num]=${GITHUB_SHA}$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo -PR-$(echo ${GITHUB_REF} | cut -d / -f 3))&payload[status]=done"
+        run: curl -k https://coveralls.io/webhook?repo_token=${COVERALLS_REPO_TOKEN} -d "payload[build_num]=${GITHUB_SHA}$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo -PR-$(echo ${GITHUB_REF} | cut -d / -f 3))&payload[status]=done"
