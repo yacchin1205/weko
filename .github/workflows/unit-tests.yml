@@ -99,5 +99,5 @@ jobs:
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: |
-          echo "payload[build_num]=$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo ${GITHUB_SHA}-PR-$(echo ${GITHUB_REF} | cut -d / -f 3) || echo ${GITHUB_SHA})&payload[status]=done"
-          curl -k https://coveralls.io/webhook?repo_token=${COVERALLS_REPO_TOKEN} -d "payload[build_num]=$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo ${GITHUB_SHA}-PR-$(echo ${GITHUB_REF} | cut -d / -f 3) || echo ${GITHUB_SHA})&payload[status]=done"
+          echo "payload[build_num]=${GITHUB_SHA}$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo -PR-$(echo ${GITHUB_REF} | cut -d / -f 3))&payload[status]=done"
+          curl -k https://coveralls.io/webhook?repo_token=${COVERALLS_REPO_TOKEN} -d "payload[build_num]=${GITHUB_SHA}$([[ $(echo ${GITHUB_REF} | cut -d / -f 2) == 'pull' ]] && echo -PR-$(echo ${GITHUB_REF} | cut -d / -f 3))&payload[status]=done"
