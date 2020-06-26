@@ -88,3 +88,16 @@ jobs:
           source venv/bin/activate
           cp modules/${{ matrix.module }}/.coverage ./
           coveralls
+
+  coveralls_finish:
+    name: Coveralls finish
+    needs: test
+    runs-on: ubuntu-18.04
+    steps:
+      - name: Send webhook
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+        run: |
+          echo "payload[build_num]=${GITHUB_RUN_ID}&payload[status]=done"
+          echo "payload[build_num]=${{ GITHUB_RUN_ID }}&payload[status]=done"
+          curl -k https://coveralls.io/webhook?repo_token=${COVERALLS_REPO_TOKEN} -d "payload[build_num]=${GITHUB_RUN_ID}&payload[status]=done"
