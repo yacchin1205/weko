@@ -20,19 +20,17 @@
 """Weko-Admin API."""
 
 from __future__ import absolute_import, print_function
-
 import requests
 from flask import current_app, render_template
 from flask_babelex import lazy_gettext as _
 from invenio_db import db
 from invenio_mail.api import send_mail
+from invenio_oaiharvester.utils import get_verify
 from invenio_stats.utils import QueryCommonReportsHelper
 from sqlalchemy import text
-
 from .models import AdminLangSettings, LogAnalysisRestrictedCrawlerList, \
     LogAnalysisRestrictedIpAddress
 from .utils import get_system_default_language
-from invenio_oaiharvester.utils import get_verify
 
 
 def is_restricted_user(user_info):
@@ -64,7 +62,8 @@ def _is_crawler(user_info):
     restricted_agent_lists = LogAnalysisRestrictedCrawlerList.get_all_active()
     for restricted_agent_list in restricted_agent_lists:
         enable_verify = get_verify(restricted_agent_list.list_url)
-        raw_res = requests.get(restricted_agent_list.list_url, verify=enable_verify).text
+        raw_res = requests.get(restricted_agent_list.list_url,
+                               verify=enable_verify).text
         if not raw_res:
             continue
         restrict_list = raw_res.split('\n')

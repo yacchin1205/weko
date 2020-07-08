@@ -24,6 +24,7 @@ import requests
 from . import config
 from invenio_oaiharvester.utils import get_verify
 
+
 class CrossRefOpenURL:
     """The Class retrieves the metadata from CrossRef."""
 
@@ -94,7 +95,8 @@ class CrossRefOpenURL:
 
     def _do_http_request(self):
         enable_verify = get_verify(self.url)
-        return requests.get(self.url, timeout=self._timeout, verify=enable_verify,
+        return requests.get(self.url, timeout=self._timeout,
+                            verify=enable_verify,
                             proxies=self._proxy)
 
     def get_data(self):
@@ -170,7 +172,8 @@ class CiNiiURL:
 
     def _do_http_request(self):
         enable_verify = get_verify(self.url)
-        return requests.get(self.url, timeout=self._timeout, verify=enable_verify,
+        return requests.get(self.url, timeout=self._timeout,
+                            verify=enable_verify,
                             proxies=self._proxy)
 
     def get_data(self):

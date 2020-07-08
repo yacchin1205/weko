@@ -24,7 +24,6 @@ import os
 import zipfile
 from datetime import datetime
 from io import BytesIO, StringIO
-
 import redis
 import requests
 from flask import current_app
@@ -35,6 +34,7 @@ from invenio_db import db
 from invenio_i18n.ext import current_i18n
 from invenio_indexer.api import RecordIndexer
 from invenio_mail.admin import MailSettingView
+from invenio_oaiharvester.utils import get_verify
 from invenio_records.models import RecordMetadata
 from invenio_stats.views import QueryFileStatsCount, QueryRecordViewCount
 from jinja2 import Template
@@ -42,7 +42,6 @@ from simplekv.memory.redisstore import RedisStore
 from sqlalchemy import func
 from weko_authors.models import Authors
 from weko_records.api import ItemsMetadata
-from invenio_oaiharvester.utils import get_verify
 from . import config
 from .models import AdminLangSettings, ApiCertificate, FeedbackMailFailed, \
     FeedbackMailHistory, FeedbackMailSetting, SearchManagement, \
@@ -254,7 +253,8 @@ def validate_certification(cert_data):
     :return: true if certification is valid, false otherwise
     """
     enable_verify = get_verify(create_crossref_url(cert_data))
-    response = requests.get(create_crossref_url(cert_data), verify=enable_verify)
+    response = requests.get(create_crossref_url(cert_data),
+                            verify=enable_verify)
     return config.WEKO_ADMIN_VALIDATION_MESSAGE not in \
         str(vars(response).get('_content', None))
 

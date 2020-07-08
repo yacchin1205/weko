@@ -31,14 +31,13 @@ from flask import current_app
 from invenio_db import db
 from invenio_oaiharvester.harvester import DCMapper, DDIMapper, JPCOARMapper
 from invenio_oaiharvester.tasks import event_counter
+from invenio_oaiharvester.utils import get_verify
 from lxml import etree
-
 from .api import ResyncHandler
 from .config import INVENIO_RESYNC_INDEXES_MODE, \
     INVENIO_RESYNC_INDEXES_STATUS, INVENIO_RESYNC_LOGS_STATUS
 from .models import ResyncIndexes, ResyncLogs
 from .utils import get_list_records, process_item, process_sync
-from invenio_oaiharvester.utils import get_verify
 logger = get_task_logger(__name__)
 
 

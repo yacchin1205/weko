@@ -20,7 +20,6 @@
 """OAI harvest utils."""
 
 from __future__ import absolute_import, print_function, unicode_literals
-
 import codecs
 import enum
 import itertools
@@ -28,21 +27,19 @@ import os
 import re
 import tempfile
 from builtins import bytes
+from collections import namedtuple
 from contextlib import closing
 from datetime import datetime
-
+from socket import socket
+from urllib.parse import urlparse
+import idna
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
 from flask import current_app
 from invenio_cache.proxies import current_cache
 from lxml import etree
-from urllib.parse import urlparse
-import idna
-from socket import socket
 from OpenSSL import SSL
-from collections import namedtuple
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
 from .config import OAIHARVESTER_SELF_CERTIFICATE_FILE
-
 from .errors import InvenioOAIHarvesterConfigNotFound
 
 REGEXP_OAI_ID = re.compile(r"<identifier.*?>(.*?)</identifier>", re.DOTALL)
