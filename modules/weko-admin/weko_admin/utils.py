@@ -42,7 +42,7 @@ from simplekv.memory.redisstore import RedisStore
 from sqlalchemy import func
 from weko_authors.models import Authors
 from weko_records.api import ItemsMetadata
-
+from invenio_oaiharvester.utils import get_verify
 from . import config
 from .models import AdminLangSettings, ApiCertificate, FeedbackMailFailed, \
     FeedbackMailHistory, FeedbackMailSetting, SearchManagement, \
@@ -253,7 +253,8 @@ def validate_certification(cert_data):
     :param cert_data: Certification data
     :return: true if certification is valid, false otherwise
     """
-    response = requests.get(create_crossref_url(cert_data))
+    enable_verify = get_verify(create_crossref_url(cert_data))
+    response = requests.get(create_crossref_url(cert_data), verify=enable_verify)
     return config.WEKO_ADMIN_VALIDATION_MESSAGE not in \
         str(vars(response).get('_content', None))
 

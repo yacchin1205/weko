@@ -22,7 +22,7 @@
 import requests
 import xmltodict
 from flask import jsonify
-
+from invenio_oaiharvester.utils import get_verify
 romeo_api_base_url = 'http://www.sherpa.ac.uk/romeo/api29.php'
 
 
@@ -37,9 +37,9 @@ def search_romeo_jtitles(keywords, qtype):
         'jtitle': keywords,
         'qtype': qtype
     }
-
+    enable_verify = get_verify(romeo_api_base_url)
     response = requests.get(
-        romeo_api_base_url,
+        romeo_api_base_url, verify=enable_verify,
         params=payloads
     )
 
@@ -59,9 +59,9 @@ def search_romeo_issn(query):
     payloads = {
         'issn': query  # ISSN search - Single Result
     }
-
+    enable_verify = get_verify(romeo_api_base_url)
     response = requests.get(
-        romeo_api_base_url,
+        romeo_api_base_url, verify=enable_verify,
         params=payloads
     )
 
@@ -80,9 +80,9 @@ def search_romeo_jtitle(query):
     payloads = {
         'jtitle': query
     }
-
+    enable_verify = get_verify(romeo_api_base_url)
     response = requests.get(
-        romeo_api_base_url,
+        romeo_api_base_url, verify=enable_verify,
         params=payloads
     )
 

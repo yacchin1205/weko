@@ -38,7 +38,7 @@ from .config import INVENIO_RESYNC_INDEXES_MODE, \
     INVENIO_RESYNC_INDEXES_STATUS, INVENIO_RESYNC_LOGS_STATUS
 from .models import ResyncIndexes, ResyncLogs
 from .utils import get_list_records, process_item, process_sync
-
+from invenio_oaiharvester.utils import get_verify
 logger = get_task_logger(__name__)
 
 
@@ -157,7 +157,8 @@ def get_record(
         'identifier': 'oai:invenio:recid/{}'.format(record_id)
     }
     records = None
-    response = requests.get(url, params=payload)
+    enable_verify = get_verify(url)
+    response = requests.get(url, params=payload, verify=enable_verify)
     et = etree.XML(response.text.encode(encoding))
     current_app.logger.debug(et)
     records = et.findall('./GetRecord/record', namespaces=et.nsmap)

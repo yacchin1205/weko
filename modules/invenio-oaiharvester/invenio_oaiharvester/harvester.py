@@ -31,6 +31,7 @@ from lxml import etree
 from weko_records.models import ItemType
 
 from .config import OAIHARVESTER_DOI_PREFIX, OAIHARVESTER_HDL_PREFIX
+from .utils import get_verify
 
 DEFAULT_FIELD = [
     'title',
@@ -45,12 +46,15 @@ def list_sets(url, encoding='utf-8'):
     # Avoid SSLError - dh key too small
     requests.packages.urllib3.disable_warnings()
     requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += 'HIGH:!DH:!aNULL'
-
+    enable_verify = get_verify(url)
+    # TODO: auth_weko is just temporarily set to pass Nginx HTTP Diges Auth,
+    #  remove it when Nginx removes HTTP Diges Auth
+    auth_weko = requests.auth.HTTPDigestAuth('wekosoftware@nii.ac.jp', 'uspass123')
     sets = []
     payload = {
         'verb': 'ListSets'}
     while True:
-        response = requests.get(url, params=payload)
+        response = requests.get(url, params=payload, verify=enable_verify, auth=auth_weko)
         et = etree.XML(response.text.encode(encoding))
         sets = sets + et.findall('./ListSets/set', namespaces=et.nsmap)
         resumptionToken = et.find(
@@ -75,7 +79,10 @@ def list_records(
     # Avoid SSLError - dh key too small
     requests.packages.urllib3.disable_warnings()
     requests.packages.urllib3.util.ssl_.DEFAULT_CIPHERS += 'HIGH:!DH:!aNULL'
-
+    enable_verify = get_verify(url)
+    # TODO: auth_weko is just temporarily set to pass Nginx HTTP Diges Auth,
+    #  remove it when Nginx removes HTTP Diges Auth
+    auth_weko = requests.auth.HTTPDigestAuth('wekosoftware@nii.ac.jp', 'uspass123')
     payload = {
         'verb': 'ListRecords',
         'from': from_date,
@@ -86,7 +93,7 @@ def list_records(
         payload['resumptionToken'] = resumption_token
     records = []
     rtoken = None
-    response = requests.get(url, params=payload)
+    response = requests.get(url, params=payload, verify=enable_verify, auth=auth_weko)
     et = etree.XML(response.text.encode(encoding))
     records = records + et.findall('./ListRecords/record', namespaces=et.nsmap)
     resumptionToken = et.find(

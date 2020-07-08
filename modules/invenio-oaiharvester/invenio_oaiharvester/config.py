@@ -51,3 +51,6 @@ OAIHARVESTER_DOI_PREFIX = 'https://doi.org'
 
 OAIHARVESTER_HDL_PREFIX = 'http://hdl.handle.net'
 """Prefix of record that registered HDL"""
+
+OAIHARVESTER_SELF_CERTIFICATE_FILE = '/code/nginx/keys/server.crt'
+"""File path of self certificate"""

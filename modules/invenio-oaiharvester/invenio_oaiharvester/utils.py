@@ -27,12 +27,21 @@ import itertools
 import os
 import re
 import tempfile
+from builtins import bytes
 from contextlib import closing
 from datetime import datetime
 
 from flask import current_app
 from invenio_cache.proxies import current_cache
 from lxml import etree
+from urllib.parse import urlparse
+import idna
+from socket import socket
+from OpenSSL import SSL
+from collections import namedtuple
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from .config import OAIHARVESTER_SELF_CERTIFICATE_FILE
 
 from .errors import InvenioOAIHarvesterConfigNotFound
 
@@ -241,3 +250,60 @@ def write_to_dir(records, output_dir, max_records=1000, encoding='utf-8'):
             f.write('</ListRecords>')
 
     return files_created, total
+
+
+def analyze_url(url):
+    """Analyze an url then return scheme, host name and host."""
+    host_info = urlparse(url)
+    scheme, host, port = host_info.scheme, host_info.hostname, host_info.port
+    if not port and scheme == 'https':
+        port = 443
+    return scheme, host, port
+
+
+def get_certificate(hostname, port):
+    """Get certificate of a site."""
+    HostInfo = namedtuple(field_names='cert hostname peername', typename='HostInfo')
+
+    hostname_idna = idna.encode(hostname)
+    sock = socket()
+
+    sock.connect((hostname, port))
+    peer_name = sock.getpeername()
+    ctx = SSL.Context(SSL.SSLv23_METHOD)  # most compatible
+    ctx.check_hostname = False
+    ctx.verify_mode = SSL.VERIFY_NONE
+
+    sock_ssl = SSL.Connection(ctx, sock)
+    sock_ssl.set_connect_state()
+    sock_ssl.set_tlsext_host_name(hostname_idna)
+    sock_ssl.do_handshake()
+    cert = sock_ssl.get_peer_certificate()
+    crypto_cert = cert.to_cryptography()
+    sock_ssl.close()
+    sock.close()
+
+    return HostInfo(cert=crypto_cert, peername=peer_name, hostname=hostname)
+
+
+def load_self_cert():
+    """Load self cert."""
+    with os.open(OAIHARVESTER_SELF_CERTIFICATE_FILE) as crt_file:
+        crt_data = crt_file.read()
+    cert = x509.load_pem_x509_certificate(bytes(crt_data, encoding='utf8'), default_backend())
+    return cert
+
+
+def get_verify(url):
+    """Check url to detect whether set verify as True or False"""
+    try:
+        scheme, host, port = analyze_url(url)
+        if scheme == 'http':
+            return False
+        site_crt = get_certificate(host, port)
+        self_crt = load_self_cert()
+        verify = site_crt.cert != self_crt
+    except Exception as ex:
+        current_app.logger.error(str(ex))
+        verify = False
+    return verify
