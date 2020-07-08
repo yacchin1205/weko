@@ -21,7 +21,7 @@ citeproc-py-styles==0.1.1
 click==6.7
 cookiecutter==1.6.0
 counter-robots==2018.6
-cryptography==2.1.4
+cryptography==2.9.2
 datacite==1.0.1
 decorator==4.1.2
 dictdiffer==0.7.0
@@ -163,3 +163,5 @@ attrs==17.4.0
 b2handle==1.1.1
 resync==1.0.9
 email-validator==1.0.5
+pyOpenSSL==19.1.0
+pem==20.1.0
