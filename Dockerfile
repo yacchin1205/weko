@@ -71,7 +71,7 @@ WORKDIR /code
 COPY --chown=invenio:invenio scripts/instance.cfg /code/scripts/instance.cfg
 RUN chmod +x /code/scripts/create-instance2.sh;/code/scripts/create-instance2.sh
 
-FROM stage_5 AS stage_6
+FROM stage_5 AS build-env
 # Make given VENV default:
 ENV PATH=/home/invenio/.virtualenvs/invenio/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 #ENV VIRTUALENVWRAPPER_PYTHON=/usr/local/bin/python
@@ -82,18 +82,16 @@ RUN echo "source /home/invenio/.virtualenvs/invenio/bin/virtualenvwrapper.sh" >>
 
 #RUN mv /home/invenio/.virtualenvs/invenio/var/instance/static /home/invenio/.virtualenvs/invenio/var/instance/static.org
 
-FROM stage_6 AS build-env
-# Start the Weko application:
-CMD ["/bin/bash", "-c", "invenio run -h 0.0.0.0"]
 # CMD ["/bin/bash", "-c", "gunicorn invenio_app.wsgi --workers=4 --worker-class=meinheld.gmeinheld.MeinheldWorker -b 0.0.0.0:5000 "]
 #CMD ["/bin/bash","-c","uwsgi --ini /code/scripts/uwsgi.ini"]
 
-FROM python:3.6-slim-buster as product-env
-RUN adduser --uid 1000 --disabled-password --gecos '' invenio
+FROM python:3.6-slim-buster as product-base
 RUN apt-get -y update --allow-releaseinfo-change;apt-get -y --no-install-recommends install curl rlwrap screen vim gnupg libpcre3 libffi6 libfreetype6 libmsgpackc2 libssl1.1 libtiff5 libxml2 libxslt1.1 libzip4 nodejs libpq5 default-jre libreoffice-java-common libreoffice fonts-ipafont fonts-ipaexfont 
+RUN adduser --uid 1000 --disabled-password --gecos '' invenio
 USER invenio
 COPY --from=build-env --chown=invenio:invenio /code /code
 COPY --from=build-env --chown=invenio:invenio /home/invenio/.virtualenvs /home/invenio/.virtualenvs
+#RUN mv /home/invenio/.virtualenvs/invenio/var/instance/static /home/invenio/.virtualenvs/invenio/var/instance/static.org
 # CMD ["/bin/bash"]
 CMD ["/bin/bash", "-c", "invenio run -h 0.0.0.0"]
 # FROM python:3.6-slim-buster as product-env
