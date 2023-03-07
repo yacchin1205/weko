@@ -117,7 +117,7 @@ from weko_items_ui.config import (
 from weko_items_ui.views import blueprint as weko_items_ui_blueprint
 from weko_items_ui.views import blueprint_api as weko_items_ui_blueprint_api
 from weko_records import WekoRecords
-from weko_records.api import ItemsMetadata
+from weko_records.api import ItemsMetadata, ItemLink
 from weko_records.models import (
     FeedbackMailList,
     ItemType,
@@ -181,8 +181,6 @@ from weko_schema_ui.config import (
     WEKO_SCHEMA_JPCOAR_V1_SCHEMA_NAME,
 )
 from weko_schema_ui.models import OAIServerSchema
-
-# from weko_schema_ui import WekoSchemaREST
 from weko_schema_ui.rest import create_blueprint
 from weko_schema_ui.views import blueprint as weko_schema_ui_blueprint
 
@@ -242,26 +240,9 @@ def base_app(instance_path):
             "System Administrator",
             "Repository Administrator",
         ],
-        WEKO_SCHEMA_REST_ENDPOINTS={
-            "depid": {
-                "pid_type": "depid",
-                "pid_minter": "deposit",
-                "pid_fetcher": "deposit",
-                "record_class": "weko_schema_ui.api:WekoSchema",
-                "record_serializers": {
-                    "application/json": (
-                        "invenio_records_rest.serializers" ":json_v1_response"
-                    ),
-                },
-                "schemas_route": "/schemas/",
-                "schema_route": "/schemas/<pid_value>",
-                "schemas_put_route": "/schemas/put/<pid_value>/<path:key>",
-                # 'schemas_formats_route': '/schemas/formats/',
-                "default_media_type": "application/json",
-                "max_result_window": 10000,
-            },
-        },
+        THEME_SITEURL = 'https://localhost',
         WEKO_SCHEMA_REST_XSD_LOCATION_FOLDER="{0}/data/xsd/",
+        BASE_EDIT_TEMPLATE="weko_theme/edit.html",
         WEKO_SCHEMA_UI_ADMIN_LIST="weko_schema_ui/admin/list.html",
         WEKO_SCHEMA_UI_ADMIN_UPLOAD="weko_schema_ui/admin/upload.html",
         INDEXER_DEFAULT_INDEX="{}-weko-item-v1.0.0".format("test"),
@@ -332,7 +313,47 @@ def app(base_app):
 
 @pytest.yield_fixture()
 def client_rest(app):
-    app.register_blueprint(create_blueprint(app.config["WEKO_SCHEMA_REST_ENDPOINTS"]))
+    config = {
+        "depid": {
+            "pid_type": "depid",
+            "pid_minter": "deposit",
+            "pid_fetcher": "deposit",
+            "record_class": "weko_schema_ui.api:WekoSchema",
+            "record_serializers": {
+                "application/json": (
+                    "invenio_records_rest.serializers" ":json_v1_response"
+                ),
+            },
+            "schemas_route": "/schemas/",
+            "schema_route": "/schemas/<pid_value>",
+            "schemas_put_route": "/schemas/put/<pid_value>/<path:key>",
+            # 'schemas_formats_route': '/schemas/formats/',
+            "default_media_type": "application/json",
+            "max_result_window": 10000,
+        },
+    }
+    app.register_blueprint(create_blueprint(config))
+    with app.test_client() as client:
+        yield client
+
+
+@pytest.yield_fixture()
+def client_rest2(app):
+    config = {
+        "depid": {
+            "pid_type": "depid",
+            "pid_minter": "deposit",
+            "pid_fetcher": "deposit",
+            "record_class": "weko_schema_ui.api:WekoSchema",
+            "schemas_route": "/schemas/",
+            "schema_route": "/schemas/<pid_value>",
+            "schemas_put_route": "/schemas/put/<pid_value>/<path:key>",
+            # 'schemas_formats_route': '/schemas/formats/',
+            "default_media_type": "test",
+            "max_result_window": 10000,
+        },
+    }
+    app.register_blueprint(create_blueprint(config))
     with app.test_client() as client:
         yield client
 
@@ -88904,11 +88925,9 @@ def db_oaischema(app, db):
             }
         },
         "jpcoar:rightsHolder": {
-            "type": {"maxOccurs": "unbounded", "minOccurs": 0},
+            "type": {},
             "jpcoar:nameIdentifier": {
                 "type": {
-                    "maxOccurs": "unbounded",
-                    "minOccurs": 0,
                     "attributes": [
                         {
                             "use": "required",
@@ -88934,8 +88953,6 @@ def db_oaischema(app, db):
             },
             "jpcoar:rightsHolderName": {
                 "type": {
-                    "maxOccurs": "unbounded",
-                    "minOccurs": 0,
                     "attributes": [
                         {"use": "optional", "name": "xml:lang", "ref": "xml:lang"}
                     ],
@@ -90005,11 +90022,9 @@ def db_oaischema(app, db):
             }
         },
         "jpcoar:rightsHolder": {
-            "type": {"maxOccurs": "unbounded", "minOccurs": 0},
+            "type": {},
             "jpcoar:nameIdentifier": {
                 "type": {
-                    "maxOccurs": "unbounded",
-                    "minOccurs": 0,
                     "attributes": [
                         {
                             "use": "required",
@@ -90035,8 +90050,6 @@ def db_oaischema(app, db):
             },
             "jpcoar:rightsHolderName": {
                 "type": {
-                    "maxOccurs": "unbounded",
-                    "minOccurs": 0,
                     "attributes": [
                         {"use": "optional", "name": "xml:lang", "ref": "xml:lang"}
                     ],
@@ -91160,12 +91173,16 @@ def records(app, db, esindex, indextree, location, itemtypes, db_oaischema):
         )
         filepath = "tests/data/helloworld.docx"
         results.append(make_record(db, indexer, i, filepath, filename, mimetype))
+        il = ItemLink(str(i))
+        il.bulk_update([{"item_id": "1", "sele_id": "isVersionOf"}])
 
         i = 3
         filename = "helloworld.zip"
         mimetype = "application/zip"
         filepath = "tests/data/helloworld.zip"
         results.append(make_record(db, indexer, i, filepath, filename, mimetype))
+        il = ItemLink(str(i))
+        il.bulk_update([{"item_id": "1", "sele_id": "isCitedBy"}])
 
     # es = Elasticsearch("http://{}:9200".format(app.config["SEARCH_ELASTIC_HOSTS"]))
     # print(es.cat.indices())
@@ -91410,6 +91427,18 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                 {
                     "subitem_1522300695726": "Available",
                     "subitem_1522300722591": "2021-06-30",
+                },
+                {
+                    "subitem_1522300695726": "Issued",
+                    "subitem_1522300722591": "2021-06-30",
+                },
+                {
+                    "subitem_1522300695726": "Issued",
+                    "subitem_1522300722591": "2021-06",
+                },
+                {
+                    "subitem_1522300695726": "Issued",
+                    "subitem_1522300722591": "2021",
                 }
             ],
         },
@@ -91423,6 +91452,10 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                 {
                     "subitem_identifier_uri": "http://localhost",
                     "subitem_identifier_type": "URI",
+                },
+                {
+                    "subitem_identifier_uri": "http://doi/001",
+                    "subitem_identifier_type": "DOI",
                 }
             ],
         },
@@ -91592,26 +91625,134 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                     "contributorType": "ContactPerson",
                     "nameIdentifiers": [
                         {
-                            "nameIdentifier": "xxxxxxx",
+                            "nameIdentifier": "000001",
                             "nameIdentifierURI": "https://orcid.org/",
                             "nameIdentifierScheme": "ORCID",
                         },
                         {
-                            "nameIdentifier": "xxxxxxx",
+                            "nameIdentifier": "000001",
                             "nameIdentifierURI": "https://ci.nii.ac.jp/",
                             "nameIdentifierScheme": "CiNii",
                         },
                         {
-                            "nameIdentifier": "xxxxxxx",
+                            "nameIdentifier": "000001",
                             "nameIdentifierURI": "https://kaken.nii.ac.jp/",
                             "nameIdentifierScheme": "KAKEN2",
                         },
                     ],
-                    "contributorMails": [{"contributorMail": "wekosoftware@nii.ac.jp"}],
+                    "contributorMails": [{"contributorMail": "test1@nii.ac.jp"}],
                     "contributorNames": [
                         {"lang": "ja", "contributorName": "情報, 太郎"},
                         {"lang": "ja-Kana", "contributorName": "ジョウホウ, タロウ"},
                         {"lang": "en", "contributorName": "Joho, Taro"},
+                    ],
+                },
+                {
+                    "givenNames": [
+                        {"givenName": "二郎", "givenNameLang": "ja"},
+                        {"givenName": "ニロウ", "givenNameLang": "ja-Kana"},
+                        {"givenName": "Niro", "givenNameLang": "en"},
+                    ],
+                    "familyNames": [
+                        {"familyName": "情報", "familyNameLang": "ja"},
+                        {"familyName": "ジョウホウ", "familyNameLang": "ja-Kana"},
+                        {"familyName": "Joho", "familyNameLang": "en"},
+                    ],
+                    "contributorType": "Distributor",
+                    "nameIdentifiers": [
+                        {
+                            "nameIdentifier": "000002",
+                            "nameIdentifierURI": "https://orcid.org/",
+                            "nameIdentifierScheme": "ORCID",
+                        },
+                        {
+                            "nameIdentifier": "000002",
+                            "nameIdentifierURI": "https://ci.nii.ac.jp/",
+                            "nameIdentifierScheme": "CiNii",
+                        },
+                        {
+                            "nameIdentifier": "000002",
+                            "nameIdentifierURI": "https://kaken.nii.ac.jp/",
+                            "nameIdentifierScheme": "KAKEN2",
+                        },
+                    ],
+                    "contributorMails": [{"contributorMail": "test2@nii.ac.jp"}],
+                    "contributorNames": [
+                        {"lang": "ja", "contributorName": "情報, 二郎"},
+                        {"lang": "ja-Kana", "contributorName": "ジョウホウ, ニロウ"},
+                        {"lang": "en", "contributorName": "Joho, Niro"},
+                    ],
+                },
+                {
+                    "givenNames": [
+                        {"givenName": "三郎", "givenNameLang": "ja"},
+                        {"givenName": "サンロウ", "givenNameLang": "ja-Kana"},
+                        {"givenName": "Sanro", "givenNameLang": "en"},
+                    ],
+                    "familyNames": [
+                        {"familyName": "情報", "familyNameLang": "ja"},
+                        {"familyName": "ジョウホウ", "familyNameLang": "ja-Kana"},
+                        {"familyName": "Joho", "familyNameLang": "en"},
+                    ],
+                    "contributorType": "Other",
+                    "nameIdentifiers": [
+                        {
+                            "nameIdentifier": "000003",
+                            "nameIdentifierURI": "https://orcid.org/",
+                            "nameIdentifierScheme": "ORCID",
+                        },
+                        {
+                            "nameIdentifier": "000003",
+                            "nameIdentifierURI": "https://ci.nii.ac.jp/",
+                            "nameIdentifierScheme": "CiNii",
+                        },
+                        {
+                            "nameIdentifier": "000003",
+                            "nameIdentifierURI": "https://kaken.nii.ac.jp/",
+                            "nameIdentifierScheme": "KAKEN2",
+                        },
+                    ],
+                    "contributorMails": [{"contributorMail": "test3@nii.ac.jp"}],
+                    "contributorNames": [
+                        {"lang": "ja", "contributorName": "情報, 三郎"},
+                        {"lang": "ja-Kana", "contributorName": "ジョウホウ, サンロウ"},
+                        {"lang": "en", "contributorName": "Joho, Sanro"},
+                    ],
+                },
+                {
+                    "givenNames": [
+                        {"givenName": "四郎", "givenNameLang": "ja"},
+                        {"givenName": "シロウ", "givenNameLang": "ja-Kana"},
+                        {"givenName": "Siro", "givenNameLang": "en"},
+                    ],
+                    "familyNames": [
+                        {"familyName": "情報", "familyNameLang": "ja"},
+                        {"familyName": "ジョウホウ", "familyNameLang": "ja-Kana"},
+                        {"familyName": "Joho", "familyNameLang": "en"},
+                    ],
+                    "contributorType": "DataCollector",
+                    "nameIdentifiers": [
+                        {
+                            "nameIdentifier": "000004",
+                            "nameIdentifierURI": "https://orcid.org/",
+                            "nameIdentifierScheme": "ORCID",
+                        },
+                        {
+                            "nameIdentifier": "000004",
+                            "nameIdentifierURI": "https://ci.nii.ac.jp/",
+                            "nameIdentifierScheme": "CiNii",
+                        },
+                        {
+                            "nameIdentifier": "000004",
+                            "nameIdentifierURI": "https://kaken.nii.ac.jp/",
+                            "nameIdentifierScheme": "KAKEN2",
+                        },
+                    ],
+                    "contributorMails": [{"contributorMail": "test4@nii.ac.jp"}],
+                    "contributorNames": [
+                        {"lang": "ja", "contributorName": "情報, 四郎"},
+                        {"lang": "ja-Kana", "contributorName": "ジョウホウ, シロウ"},
+                        {"lang": "en", "contributorName": "Joho, Siro"},
                     ],
                 }
             ],
@@ -91631,7 +91772,46 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                     "subitem_1522306207484": "isVersionOf",
                     "subitem_1522306287251": {
                         "subitem_1522306382014": "arXiv",
-                        "subitem_1522306436033": "xxxxx",
+                        "subitem_1522306436033": "001",
+                    },
+                    "subitem_1523320863692": [
+                        {
+                            "subitem_1523320867455": "en",
+                            "subitem_1523320909613": "Related Title",
+                        }
+                    ],
+                },
+                {
+                    "subitem_1522306207484": "isReferencedBy",
+                    "subitem_1522306287251": {
+                        "subitem_1522306382014": "arXiv",
+                        "subitem_1522306436033": "002",
+                    },
+                    "subitem_1523320863692": [
+                        {
+                            "subitem_1523320867455": "en",
+                            "subitem_1523320909613": "Related Title",
+                        }
+                    ],
+                },
+                {
+                    "subitem_1522306207484": "isSupplementedBy",
+                    "subitem_1522306287251": {
+                        "subitem_1522306382014": "arXiv",
+                        "subitem_1522306436033": "003",
+                    },
+                    "subitem_1523320863692": [
+                        {
+                            "subitem_1523320867455": "en",
+                            "subitem_1523320909613": "Related Title",
+                        }
+                    ],
+                },
+                {
+                    "subitem_1522306207484": "isPartOf",
+                    "subitem_1522306287251": {
+                        "subitem_1522306382014": "arXiv",
+                        "subitem_1522306436033": "004",
                     },
                     "subitem_1523320863692": [
                         {
@@ -91652,7 +91832,8 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                             i, filename
                         )
                     },
-                    "date": [{"dateType": "Available", "dateValue": "2021-07-12"}],
+                    "date": [{"dateType": "Available", "dateValue": "2021-07-12"},
+                             {"dateType": "Issued", "dateValue": "2021"}],
                     "format": "text/plain",
                     "filename": "{}".format(filename),
                     "filesize": [{"value": "1 KB"}],
@@ -91669,9 +91850,14 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                 {
                     "nameIdentifiers": [
                         {
-                            "nameIdentifier": "xxxxxx",
+                            "nameIdentifier": "0001",
                             "nameIdentifierURI": "https://orcid.org/",
                             "nameIdentifierScheme": "ORCID",
+                        },
+                        {
+                            "nameIdentifier": "0002",
+                            "nameIdentifierURI": "https://e-rad.org/",
+                            "nameIdentifierScheme": "e-Rad",
                         }
                     ],
                     "rightHolderNames": [
@@ -91914,6 +92100,18 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
             {
                 "subitem_1522300695726": "Available",
                 "subitem_1522300722591": "2021-06-30",
+            },
+            {
+                "subitem_1522300695726": "Issued",
+                "subitem_1522300722591": "2021-06-30",
+            },
+            {
+                "subitem_1522300695726": "Issued",
+                "subitem_1522300722591": "2021-06",
+            },
+            {
+                "subitem_1522300695726": "Issued",
+                "subitem_1522300722591": "2021",
             }
         ],
         "item_1617186702042": [{"subitem_1551255818386": "jpn"}],
@@ -91921,6 +92119,10 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
             {
                 "subitem_identifier_uri": "http://localhost",
                 "subitem_identifier_type": "URI",
+            },
+            {
+                "subitem_identifier_uri": "http://doi/001",
+                "subitem_identifier_type": "DOI",
             }
         ],
         "item_1617186859717": [
@@ -92075,7 +92277,8 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
                         i, filename
                     )
                 },
-                "date": [{"dateType": "Available", "dateValue": "2021-07-12"}],
+                "date": [{"dateType": "Available", "dateValue": "2021-07-12"},
+                         {"dateType": "Issued", "dateValue": "2021"}],
                 "format": "{}".format(mimetype),
                 "filename": "{}".format(filename),
                 "filesize": [{"value": "1 KB"}],
@@ -92224,7 +92427,8 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
 
     record_data["content"] = [
         {
-            "date": [{"dateValue": "2021-07-12", "dateType": "Available"}],
+            "date": [{"dateValue": "2021-07-12", "dateType": "Available"},
+                     {"dateValue": "2021", "dateType": "Issued"}],
             "accessrole": "open_access",
             "displaytype": "simple",
             "filename": filename,
@@ -92261,7 +92465,8 @@ def make_record(db, indexer, i, filepath, filename, mimetype):
     record_data_v1 = copy.deepcopy(record_data)
     record_data_v1["content"] = [
         {
-            "date": [{"dateValue": "2021-07-12", "dateType": "Available"}],
+            "date": [{"dateValue": "2021-07-12", "dateType": "Available"},
+                     {"dateValue": "2021", "dateType": "Issued"}],
             "accessrole": "open_access",
             "displaytype": "simple",
             "filename": filename,
