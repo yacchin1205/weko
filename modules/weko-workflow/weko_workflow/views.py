@@ -25,10 +25,12 @@ import os
 import re
 import shutil
 import sys
+import traceback
 from collections import OrderedDict
 from copy import deepcopy
 from datetime import datetime
 from functools import wraps
+from typing import List
 
 import redis
 from redis import sentinel
@@ -85,12 +87,12 @@ from .errors import ActivityBaseRESTError, ActivityNotFoundRESTError, \
     DeleteActivityFailedRESTError, InvalidInputRESTError, \
     RegisteredActivityNotFoundRESTError
 from .models import ActionStatusPolicy, Activity, ActivityAction, \
-    ActivityStatusPolicy, FlowAction
+    ActivityStatusPolicy, FlowAction, GuestActivity
 from .romeo import search_romeo_issn, search_romeo_jtitles
 from .scopes import activity_scope
 from .utils import IdentifierHandle, auto_fill_title, \
     check_authority_by_admin, check_continue, check_doi_validation_not_pass, \
-    check_existed_doi, create_onetime_download_url_to_guest, \
+    check_existed_doi, is_terms_of_use_only, \
     delete_cache_data, delete_guest_activity, filter_all_condition, \
     get_account_info, get_actionid, get_activity_display_info, \
     get_activity_id_of_record_without_version, \
@@ -98,7 +100,7 @@ from .utils import IdentifierHandle, auto_fill_title, \
     get_files_and_thumbnail, get_identifier_setting, get_main_record_detail, \
     get_pid_and_record, get_pid_value_by_activity_detail, \
     get_record_by_root_ver, get_thumbnails, get_usage_data, \
-    get_workflow_item_type_names, handle_finish_workflow, \
+    get_workflow_item_type_names, grant_access_rights_to_all_open_restricted_files, handle_finish_workflow, \
     init_activity_for_guest_user, is_enable_item_name_link, \
     is_hidden_pubdate, is_show_autofill_metadata, \
     is_usage_application_item_type, prepare_data_for_guest_activity, \
@@ -508,6 +510,15 @@ def init_activity():
         res = ResponseMessageSchema().load({'code':-1,'msg':str(err)})
         return jsonify(res.data), 400
 
+    if is_terms_of_use_only(post_activity.data["workflow_id"]):
+        # if the workflow is terms_of_use_only(利用規約のみ) ,
+        # do not create activity. redirect file download.
+        file_name = post_activity.data["extra_info"]["file_name"]
+        record_id = post_activity.data["extra_info"]["record_id"]
+        url = _generate_download_url(record_id=record_id,file_name=file_name)
+        res = ResponseMessageSchema().load({'code':1,'msg':'success','data':{'is_download':True, 'redirect': url}})
+        return jsonify(res.data), 200
+
     activity = WorkActivity()
     try:
         if 'community' in request.args:
@@ -544,6 +555,23 @@ def init_activity():
     return jsonify(res.data),200
 
 
+def _generate_download_url(record_id :str ,file_name :str) -> str:
+    """ generate file download url 
+
+    Args:
+        str: record_id :recid
+        str: file_name
+    Returns:
+        str: url
+    """
+    
+    url:str = url_for(
+            'invenio_records_ui.recid_files'
+            ,pid_value=record_id, filename=file_name
+        )
+    current_app.logger.info('generated redirect url is ' + url)
+    return url
+
 @workflow_blueprint.route('/activity/list', methods=['GET'])
 @login_required
 def list_activity():
@@ -577,11 +605,22 @@ def list_activity():
 
 @workflow_blueprint.route('/activity/init-guest', methods=['POST'])
 def init_activity_guest():
-    """Init activity for guest user.
-
-    @return:
+    """Init workflow activity for guest user.
+        Return URL of workflow activity made from the request body.
+    Returns:
+        dict: json data validated by ResponseMessageSchema.
+        
     """
     post_data = request.get_json()
+    
+    if is_terms_of_use_only(post_data["workflow_id"]):
+        # if the workflow is terms_of_use_only(利用規約のみ) ,
+        # do not create activity. redirect file download.
+        file_name = post_data["file_name"]
+        record_id = post_data["record_id"]
+        url = _generate_download_url(record_id=record_id,file_name=file_name)
+        res = ResponseMessageSchema().load({'code':1,'msg':'success','data':{'is_download':True, 'redirect': url}})
+        return jsonify(res.data), 200
 
     if post_data.get('guest_mail'):
         try:
@@ -679,7 +718,7 @@ def display_guest_activity(file_name=""):
 
 @workflow_blueprint.route('/activity/detail/<string:activity_id>',
                  methods=['GET', 'POST'])
-@login_required
+@login_required_customize
 def display_activity(activity_id="0"):
     """各アクティビティのビューをレンダリングする
 
@@ -935,10 +974,11 @@ def display_activity(activity_id="0"):
             session['itemlogin_pid'] = recid
             session['itemlogin_community_id'] = community_id
 
-    user_id = current_user.id
-    user_profile = {}
+    user_id = current_user.id if hasattr(current_user , 'id') else None
+    user_profile = None
     if user_id:
         from weko_user_profiles.views import get_user_profile_info
+        user_profile={}
         user_profile['results'] = get_user_profile_info(int(user_id))
     from weko_records_ui.utils import get_list_licence
     from weko_theme.utils import get_design_layout
@@ -1337,7 +1377,7 @@ def next_action(activity_id='0', action_id=0):
     next_action_order = next_flow_action[
         0].action_order if action_order else None
     # Start to send mail
-    if 'approval' in [action_endpoint, next_action_endpoint]:
+    if next_action_endpoint in ['approval' , 'end_action']:
         current_flow_action = flow.get_flow_action_detail(
             activity_detail.flow_define.flow_id, action_id, action_order)
         if current_flow_action is None:
@@ -1353,15 +1393,22 @@ def next_action(activity_id='0', action_id=0):
             res = ResponseMessageSchema().load({"code":-2, "msg":"can not get next_action_detail"})
             return jsonify(res.data), 500
 
-        is_last_approval_step = work_activity \
-            .is_last_approval_step(activity_id, action_id, action_order) \
-            if action_endpoint == "approval" else False
+        is_last_step = next_action_endpoint == 'end_action'
         # Only gen url file link at last approval step
         url_and_expired_date = {}
-        if is_last_approval_step:
-            url_and_expired_date = create_onetime_download_url_to_guest(
-                activity_detail.activity_id,
-                activity_detail.extra_info)
+        if is_last_step:
+            # Approve to file permission
+            # 利用申請のWF時、申請されたファイルと、そのアイテム内の制限公開ファイルすべてにアクセス権を付与する
+            permissions :List[FilePermission] = FilePermission.find_by_activity(activity_id)
+            guest_activity :GuestActivity = GuestActivity.find_by_activity_id(activity_id)
+            if permissions and len(permissions) == 1:
+                # 利用申請(ログイン済)なら、WF作成時にFilePermissionが1レコードだけ作られている。
+                url_and_expired_date = grant_access_rights_to_all_open_restricted_files(activity_id,permissions[0] ,activity_detail)
+            elif guest_activity and len(guest_activity) == 1:
+                # 利用申請(ゲスト)なら、WF作成時にFilePermissionが作られていないが、GuestActivityが作られている。
+                url_and_expired_date = grant_access_rights_to_all_open_restricted_files(activity_id,guest_activity[0] ,activity_detail)
+
+            
             if not url_and_expired_date:
                 url_and_expired_date = {}
         action_mails_setting = {"previous":
@@ -1385,10 +1432,6 @@ def next_action(activity_id='0', action_id=0):
                     current_flow_action.action_roles[0].action_user:
                 next_action_handler = current_flow_action.action_roles[
                     0].action_user
-        if next_action_handler is None:
-            current_app.logger.error("next_action: can not get next_action_handler")
-            res = ResponseMessageSchema().load({"code":-2, "msg":"can not get next_action_handler"})
-            return jsonify(res.data), 500
         process_send_approval_mails(activity_detail, action_mails_setting,
                                     next_action_handler,
                                     url_and_expired_date)
@@ -1566,7 +1609,7 @@ def next_action(activity_id='0', action_id=0):
             if not recid:
                 record_without_version = pid_without_ver.object_uuid
             saving_doi_pidstore(item_id, record_without_version, post_json,
-                                int(identifier_select), False, True)
+                                int(identifier_select), True)
     elif 'identifier_grant' == action_endpoint \
             and not post_json.get('temporary_save'):
         _value, _type = IdentifierHandle(item_id).get_idt_registration_data()
@@ -1602,7 +1645,6 @@ def next_action(activity_id='0', action_id=0):
         comment='',
         action_order=action_order
     )
-
     if 'end_action' == next_action_endpoint:
         new_activity_id = None
         new_activity_id = handle_finish_workflow(deposit,
@@ -1611,11 +1653,6 @@ def next_action(activity_id='0', action_id=0):
         if new_activity_id is None:
             res = ResponseMessageSchema().load({"code":-1, "msg":_("error")})
             return jsonify(res.data), 500
-
-        # Remove to file permission
-        permission = FilePermission.find_by_activity(activity_id)
-        if permission:
-            FilePermission.delete_object(permission)
 
         activity.update(
             action_id=next_action_id,
@@ -2098,6 +2135,8 @@ def cancel_action(activity_id='0', action_id=0):
         activity_id=activity_id, action_id=action_id,
         action_status=ActionStatusPolicy.ACTION_CANCELED,
         action_order=activity_detail.action_order)
+    
+
 
     rtn = work_activity.quit_activity(activity)
 
@@ -2123,7 +2162,31 @@ def cancel_action(activity_id='0', action_id=0):
     permission = FilePermission.find_by_activity(activity_id)
     if permission:
         FilePermission.delete_object(permission)
-
+    
+    #  not work 
+    cache_key = "workflow_userlock_activity_{}".format(str(current_user.get_id()))
+    cur_locked_val = str(get_cache_data(cache_key)) or None
+    if cur_locked_val and cur_locked_val==activity_id:
+        update_cache_data(
+            cache_key,
+            cur_locked_val,
+            1
+        )
+        delete_cache_data(cache_key)
+    
+    try:
+        cache_key = 'workflow_locked_activity_{}'.format(activity_id)
+        cur_locked_val = str(get_cache_data(cache_key)) or None
+        if cur_locked_val:
+            update_cache_data(
+                cache_key,
+                cur_locked_val,
+                1
+            )
+            delete_cache_data(cache_key)
+    except Exception as e:
+        current_app.logger.error(traceback.format_exc())
+                 
     res = ResponseMessageSchema().load(
         {"code":0, "msg":_("success"),"data":{"redirect":url}}
         )
@@ -2353,8 +2416,17 @@ def get_feedback_maillist(activity_id='0'):
 def is_user_locked():
     cache_key = "workflow_userlock_activity_{}".format(str(current_user.get_id()))
     cur_locked_val = str(get_cache_data(cache_key)) or str()
+    current_app.logger.error("is_user_locked:{}".format(cur_locked_val))
+         
+        
     if cur_locked_val:
-        is_open=True
+        work_activity = WorkActivity()
+        act = work_activity.get_activity_by_id(cur_locked_val)
+        current_app.logger.error(act.activity_status)
+        if act is None or act.activity_status in [ActivityStatusPolicy.ACTIVITY_CANCEL,ActivityStatusPolicy.ACTIVITY_FORCE_END,ActivityStatusPolicy.ACTIVITY_FINALLY]:
+            is_open = False
+        else:
+            is_open = True
     else:
         is_open=False
     
@@ -2394,18 +2466,22 @@ def user_lock_activity(activity_id="0"):
     validate_csrf_header(request)
     cache_key = "workflow_userlock_activity_{}".format(str(current_user.get_id()))
     timeout = current_app.permanent_session_lifetime.seconds
-    
     cur_locked_val = str(get_cache_data(cache_key)) or str()
-    
     err = ""
     if cur_locked_val:
         err = _("Opened")
     else:
-        update_cache_data(
-            cache_key,
-            activity_id,
-            timeout
-        )
+        work_activity = WorkActivity()
+        act = work_activity.get_activity_by_id(activity_id)
+        if act is None or act.activity_status in [ActivityStatusPolicy.ACTIVITY_BEGIN,ActivityStatusPolicy.ACTIVITY_MAKING]:
+            update_cache_data(
+                cache_key,
+                activity_id,
+                timeout
+            )
+        # elif cur_locked_val==activity_id:
+        #     delete_cache_data(cache_key)
+            
     locked_by_email, locked_by_username = get_account_info(str(current_user.get_id()))
     res = {"code":200,"msg": "" if err else _("Success"),"err": err or "", "locked_by_username":locked_by_username}
     return jsonify(res), 200
@@ -2449,11 +2525,11 @@ def user_unlock_activity(activity_id="0"):
     cache_key = "workflow_userlock_activity_{}".format(str(current_user.get_id()))
     cur_locked_val = str(get_cache_data(cache_key)) or str()
     data = json.loads(request.data.decode("utf-8"))
-    msg = None
-    if cur_locked_val and not data["is_opened"]:
+    msg = _("Not unlock")
+    if cur_locked_val and not data["is_opened"] or (cur_locked_val == activity_id):
         delete_cache_data(cache_key)
         msg = "User Unlock Success"
-    res = {"code":200, "msg":msg or _("Not unlock")}
+    res = {"code":200, "msg":msg}
     return jsonify(res), 200
 
 @workflow_blueprint.route('/activity/lock/<string:activity_id>', methods=['POST'])
@@ -2539,6 +2615,7 @@ def lock_activity(activity_id="0"):
         current_app.logger.error("lock_activity: "+str(err))
         res = ResponseMessageSchema().load({"code":-1, "msg":str(err)})
         return jsonify(res.data), 500
+    
     data = schema_load.data
     locked_value = data.get('locked_value')
     cur_locked_val = str(get_cache_data(cache_key)) or str()
@@ -2548,20 +2625,26 @@ def lock_activity(activity_id="0"):
             locked_value = cur_locked_val
             err = _('Locked')
         else:
+            work_activity = WorkActivity()
+            act = work_activity.get_activity_by_id(activity_id)
+            if act is None or act.activity_status in [ActivityStatusPolicy.ACTIVITY_BEGIN,ActivityStatusPolicy.ACTIVITY_MAKING]:
+                update_cache_data(
+                    cache_key,
+                    locked_value,
+                    timeout
+                )
+    else:
+        # create new lock cache
+        locked_value = str(current_user.get_id()) + '-' + \
+            str(int(datetime.timestamp(datetime.now()) * 10 ** 3))
+        work_activity = WorkActivity()
+        act = work_activity.get_activity_by_id(activity_id)
+        if act is None or act.activity_status in [ActivityStatusPolicy.ACTIVITY_BEGIN,ActivityStatusPolicy.ACTIVITY_MAKING]:
             update_cache_data(
                 cache_key,
                 locked_value,
                 timeout
             )
-    else:
-        # create new lock cache
-        locked_value = str(current_user.get_id()) + '-' + \
-            str(int(datetime.timestamp(datetime.now()) * 10 ** 3))
-        update_cache_data(
-            cache_key,
-            locked_value,
-            timeout
-        )
 
     locked_by_email, locked_by_username = get_account_info(
         locked_value.split('-')[0])

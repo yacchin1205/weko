@@ -216,7 +216,7 @@ class ItemManagementCustomSort(BaseView):
             # save data to DB
             item_sort = {}
             for sort in sort_data:
-                sd = sort.get("custom_sort").get(index_id)
+                sd = sort.get("custom_sort", {}).get(index_id)
                 if sd:
                     item_sort[sort.get("id")] = sd
 
@@ -227,8 +227,9 @@ class ItemManagementCustomSort(BaseView):
             # Indexes.update_item_sort_custom_es(fp.path, sort_data)
 
             jfy = {"status": 200, "message": "Data is successfully updated."}
-        except Exception:
+        except Exception as ex:
             jfy = {"status": 405, "message": "Error."}
+            current_app.logger.error(ex)
         return make_response(jsonify(jfy), jfy["status"])
 
 
@@ -757,9 +758,10 @@ class ItemBulkExport(BaseView):
             user_id=user_id
         )
         export_status, download_uri, message, run_message, _ = get_export_status()
+        timezone = str(current_app.config["STATS_WEKO_DEFAULT_TIMEZONE"]())
 
         if not export_status:
-            export_task = export_all_task.apply_async(args=(request.url_root, user_id, data))
+            export_task = export_all_task.apply_async(args=(request.url_root, user_id, data, timezone))
             reset_redis_cache(_cache_key, str(export_task.task_id))
 
         # return Response(status=200)
