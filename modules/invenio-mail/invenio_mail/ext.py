@@ -17,6 +17,7 @@ from flask_mail import Mail, email_dispatched
 
 from . import config
 from .views import blueprint
+from .api import DomainMail
 
 
 def print_email(message, app):
@@ -67,7 +68,7 @@ class InvenioMail(object):
         """
         self.init_config(app)
         if 'mail' not in app.extensions:
-            Mail(app)
+            DomainMail(app)
         if app.config.get('MAIL_SUPPRESS_SEND', False) or app.debug:
             email_dispatched.connect(print_email)
         app.register_blueprint(blueprint)
@@ -84,5 +85,4 @@ class InvenioMail(object):
         for k in dir(config):
             if k.startswith('INVENIO_MAIL_'):
                 app.config.setdefault(k, getattr(config, k))
-            elif k.startswith('BABEL_'):
-                app.config.setdefault(k, getattr(config, k))
+

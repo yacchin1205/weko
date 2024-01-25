@@ -40,11 +40,12 @@ from weko_gridlayout.utils import get_widget_design_page_with_main, \
     main_design_has_main_widget
 from weko_index_tree.api import Indexes
 from weko_index_tree.models import Index, IndexStyle
-from weko_index_tree.utils import get_index_link_list
+from weko_index_tree.utils import get_index_link_list, filter_index_list_by_role
 from weko_items_ui.utils import get_ranking
 from weko_records_ui.ipaddr import check_site_license_permission
 from weko_search_ui.api import SearchSetting, get_search_detail_keyword
 from weko_search_ui.utils import check_permission, get_journal_info
+from weko_schema_ui.models import PublishStatus
 
 
 def get_weko_contents(getargs):
@@ -297,7 +298,7 @@ class MainScreenInitDisplaySetting:
 
     @classmethod
     def __get_last_publish_record(cls):
-        query_string = "relation_version_is_last:true AND publish_status:0"
+        query_string = "relation_version_is_last:true AND publish_status: {}".format(PublishStatus.PUBLIC.value)
         query_range = {'publish_date': {'lte': 'now'}}
         result = []
         try:
@@ -329,7 +330,8 @@ class MainScreenInitDisplaySetting:
 
         records = cls.__get_last_publish_record()
         public_indexes = {}
-        cls.__get_public_indexes(Indexes.get_public_indexes(), public_indexes)
+        index_list = filter_index_list_by_role(Indexes.get_public_indexes())
+        cls.__get_public_indexes(index_list, public_indexes)
         last_index = ""
         for record in records:
             path = record.get('_source').get('path')
@@ -343,8 +345,15 @@ class MainScreenInitDisplaySetting:
 
     @classmethod
     def __get_public_indexes(cls, indexes: list, index_dict: dict):
+        public_index_list = [i.id for i in indexes]
         for _index in indexes:
-            if _index.id and _index.public_state:
+            parent_list = Indexes.get_all_parent_indexes(_index.id)
+            pub_flag = True
+            for p in parent_list:
+                if p.id not in public_index_list:
+                    pub_flag = False
+                    break
+            if pub_flag and _index.id and _index.public_state:
                 index_dict[str(_index.id)] = {
                     'updated': _index.updated,
                     'display_format': _index.display_format,

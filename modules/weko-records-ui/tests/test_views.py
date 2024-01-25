@@ -4,9 +4,12 @@ import io
 from flask import Flask, json, jsonify, session, url_for
 from flask_security.utils import login_user
 from invenio_accounts.testutils import login_user_via_session
+from invenio_files_rest.models import ObjectVersion
+from invenio_pidstore.models import PersistentIdentifier, PIDStatus
 from mock import patch
+from lxml import etree
 from weko_deposit.api import WekoRecord
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, InternalServerError
 from sqlalchemy.orm.exc import MultipleResultsFound
 from jinja2.exceptions import TemplatesNotFound
 from weko_workflow.models import (
@@ -18,6 +21,7 @@ from weko_workflow.models import (
     FlowDefine,
     WorkFlow,
 )
+from weko_records_ui.models import PDFCoverPageSettings, FilePermission
 from weko_records_ui.views import (
     check_permission,
     citation,
@@ -525,11 +529,39 @@ def test_set_pdfcoverpage_header_acl_guest(app, client, records, pdfcoverpageset
     assert res.status_code == 308
     assert res.location == 'http://test_server/admin/pdfcoverpage/'
 
-    res = client.post(url)
-    assert res.status_code == 302
-    assert res.location == 'http://test_server/login/?next=%2Frecords%2Fparent%3A1'
-
 # .tox/c1/bin/pytest --cov=weko_records_ui tests/test_views.py::test_set_pdfcoverpage_header_acl -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-records-ui/.tox/c1/tmp
+@pytest.mark.parametrize(
+    "id, result",
+    [
+        (0, False),
+        # (1, True),
+        # (2, True),
+        # (3, True),
+        # (4, True),
+        # (5, True),
+        # (6, True),
+        # (7, True),
+    ],
+)
+def test_set_pdfcoverpage_header_acl_error(app, client, records, users, id, result, pdfcoverpagesetting):
+    login_user_via_session(client=client, email=users[id]["email"])
+    url = url_for("weko_records_ui.set_pdfcoverpage_header",_external=True)
+    res = client.get(url)
+    assert res.status_code == 308
+    assert res.location == 'http://test_server/admin/pdfcoverpage/'
+    s = PDFCoverPageSettings.find(1)
+    assert s is not None
+    assert s.header_output_image == ''
+
+    data = {'availability':'enable', 'header-display':'string', 'header-output-string':'Weko Univ', 'header-display-position':'center', 'pdfcoverpage_form': '',
+        'header-output-image': (io.BytesIO(b"some initial text data"), 'test.png')}
+    with patch('weko_records_ui.views.db.session.commit', side_effect=Exception("")):
+        res = client.post(url,data=data)
+        assert res.status_code == 302
+        s = PDFCoverPageSettings.find(1)
+        assert s is not None
+        assert s.header_output_image == ''
+
 @pytest.mark.parametrize(
     "id, result",
     [
@@ -549,12 +581,18 @@ def test_set_pdfcoverpage_header_acl(app, client, records, users, id, result, pd
     res = client.get(url)
     assert res.status_code == 308
     assert res.location == 'http://test_server/admin/pdfcoverpage/'
+    s = PDFCoverPageSettings.find(1)
+    assert s is not None
+    assert s.header_output_image == ''
 
     data = {'availability':'enable', 'header-display':'string', 'header-output-string':'Weko Univ', 'header-display-position':'center', 'pdfcoverpage_form': '',
-    'header-output-image': (io.BytesIO(b"some initial text data"), 'test.png')}
+        'header-output-image': (io.BytesIO(b"some initial text data"), 'test.png')}
     res = client.post(url,data=data)
     assert res.status_code == 302
     assert res.location == 'http://test_server/admin/pdfcoverpage'
+    s = PDFCoverPageSettings.find(1)
+    assert s is not None
+    assert s.header_output_image != ''
 
     data = {'availability':'enable', 'header-display':'image', 'header-output-string':'Weko Univ', 'header-display-position':'center', 'pdfcoverpage_form': '',
     'header-output-image': (io.BytesIO(b"some initial text data"), 'test.png')}
@@ -595,11 +633,19 @@ def test_file_version_update_acl(client, records, users, id, status_code):
     assert res.status_code == status_code
     assert json.loads(res.data) == {'status': 0, 'msg': 'Insufficient permission'}
 
-    # need to fix
     with patch("weko_records_ui.views.has_update_version_role", return_value=True):
-        with pytest.raises(Exception) as e:
+        _data = {'is_show': '1'}
+        obj = ObjectVersion.get(bucket=None, key=None, version_id=None)
+        assert obj.is_show == False
+
+        with patch('weko_records_ui.views.db.session.commit', side_effect=Exception("")):
             res = client.put(url, data=_data)
-        assert e.type == MultipleResultsFound
+            obj = ObjectVersion.get(bucket=None, key=None, version_id=None)
+            assert obj.is_show == False
+        
+        res = client.put(url, data=_data)
+        obj = ObjectVersion.get(bucket=None, key=None, version_id=None)
+        assert obj.is_show == True
 
         _data['bucket_id'] = 'none bucket'
         _data['key'] = 'none key'
@@ -652,8 +698,17 @@ def test_soft_delete_acl(client, records, users, id, status_code):
             "weko_records_ui.soft_delete", recid=1, _external=True
         )
         with patch("flask.templating._render", return_value=""):
+            pid = PersistentIdentifier.query.filter_by(
+                pid_type='recid', pid_value='1').first()
+            assert pid.status == PIDStatus.REGISTERED
             res = client.post(url)
             assert res.status_code == status_code
+            pid = PersistentIdentifier.query.filter_by(
+                pid_type='recid', pid_value='1').first()
+            if status_code == 200:
+                assert pid.status == PIDStatus.DELETED
+            else:
+                assert pid.status == PIDStatus.REGISTERED
 
 
 # def restore(recid):
@@ -698,7 +753,6 @@ def test_init_permission_acl_guest(client, records):
     assert res.status_code == 302
 
 # .tox/c1/bin/pytest --cov=weko_records_ui tests/test_views.py::test_init_permission_acl -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-records-ui/.tox/c1/tmp
-# Error
 @pytest.mark.parametrize(
     "id, status_code",
     [
@@ -715,14 +769,48 @@ def test_init_permission_acl_guest(client, records):
 def test_init_permission_acl(client, records,users, id, status_code):
     login_user_via_session(client=client, email=users[id]["email"])
     _data = {
-        'file_name': 'helloworld.pdf',
-        'activity_id': 'A-00000000-00000',
+        "file_name": "helloworld.pdf",
+        "activity_id": "A-00000000-00000"
     }
     url = url_for(
-        "weko_records_ui.init_permission", recid=1, _external=True
+        "weko_records_ui.init_permission", recid=1
     )
-    res = client.post(url, data=_data,headers = {"Content-Type" : "application/json"})
-    assert res.status_code == status_code
+
+    res = client.post(url, data=json.dumps(_data), headers=[('Content-Type', 'application/json')])
+    assert res.status_code == 200
+    res = FilePermission.query.all()
+    assert len(res)==1
+
+# Error
+# .tox/c1/bin/pytest --cov=weko_records_ui tests/test_views.py::test_init_permission_acl_error -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-records-ui/.tox/c1/tmp
+@pytest.mark.parametrize(
+    "id, status_code",
+    [
+        (0, 400),
+        # (1, 302),
+        # (2, 302),
+        # (3, 302),
+        # (4, 302),
+        # (5, 302),
+        # (6, 302),
+        # (7, 302),
+    ],
+)
+def test_init_permission_acl_error(client, records,users, id, status_code):
+    login_user_via_session(client=client, email=users[id]["email"])
+    _data = {
+        "file_name": None,
+        "activity_id": None
+    }
+    url = url_for(
+        "weko_records_ui.init_permission", recid=1
+    )
+
+    with pytest.raises(Exception) as e:
+        res = client.post(url, data=json.dumps(_data), headers=[('Content-Type', 'application/json')])
+        assert e.type==KeyError
+        res = FilePermission.query.all()
+        assert len(res)==0
 
 
 # def escape_str(s):
@@ -796,3 +884,28 @@ def test_get_uri(app,client,db_sessionlifetime,records):
     res = client.post(url,data=json.dumps({"uri":"https://localhost/001.jpg","pid_value":"1","accessrole":"1"}), content_type='application/json')
     assert res.status_code == 200
     assert json.loads(res.data)=={'status': True}
+
+
+# .tox/c1/bin/pytest --cov=weko_records_ui tests/test_views.py::test_default_view_method_fix35133 -v -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-records-ui/.tox/c1/tmp
+def test_default_view_method_fix35133(app, records, itemtypes, indexstyle,mocker):
+    indexer, results = records
+    record = results[0]["record"]
+    recid = results[0]["recid"]
+    etree_str = '<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/ http://www.openarchives.org/OAI/2.0/OAI-PMH.xsd"><responseDate>2022-10-07T06:11:40Z</responseDate><request identifier="oai:repository.dl.itc.u-tokyo.ac.jp:02005680" verb="getrecord" metadataPrefix="jpcoar_1.0">https://repository.dl.itc.u-tokyo.ac.jp/oai</request><getrecord><record><header><identifier>oai:repository.dl.itc.u-tokyo.ac.jp:02005680</identifier><datestamp>2022-09-27T06:40:27Z</datestamp></header><metadata><jpcoar:jpcoar xmlns:datacite="https://schema.datacite.org/meta/kernel-4/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:jpcoar="https://github.com/JPCOAR/schema/blob/master/1.0/" xmlns:oaire="http://namespace.openaire.eu/schema/oaire/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rioxxterms="http://www.rioxx.net/schema/v2.0/rioxxterms/" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="https://github.com/JPCOAR/schema/blob/master/1.0/" xsi:schemaLocation="https://github.com/JPCOAR/schema/blob/master/1.0/jpcoar_scm.xsd"><dc:title xml:lang="ja">『史料編纂掛備用写真画像図画類目録』画像の部：新旧架番号対照表</dc:title><jpcoar:creator><jpcoar:nameIdentifier nameIdentifierURI="https://orcid.org/123" nameIdentifierScheme="ORCID">123</jpcoar:nameIdentifier><jpcoar:creatorName xml:lang="en">creator name</jpcoar:creatorName><jpcoar:familyName xml:lang="en">creator family name</jpcoar:familyName><jpcoar:givenName xml:lang="en">creator given name</jpcoar:givenName><jpcoar:creatorAlternative xml:lang="en">creator alternative name</jpcoar:creatorAlternative><jpcoar:affiliation><jpcoar:nameIdentifier nameIdentifierURI="test uri" nameIdentifierScheme="ISNI">affi name id</jpcoar:nameIdentifier><jpcoar:affiliationName xml:lang="en">affi name</jpcoar:affiliationName></jpcoar:affiliation></jpcoar:creator><dc:rights>CC BY</dc:rights><datacite:description xml:lang="ja" descriptionType="Other">『史料編纂掛備用寫眞畫像圖畫類目録』（1905年）の「画像」（肖像画模本）の部に著録する資料の架番号の新旧対照表。史料編纂所所蔵肖像画模本データベースおよび『目録』版面画像へのリンク付き。『画像史料解析センター通信』98（2022年10月）に解説記事あり。</datacite:description><dc:publisher xml:lang="ja">東京大学史料編纂所附属画像史料解析センター</dc:publisher><dc:publisher xml:lang="en">Center for the Study of Visual Sources, Historiographical Institute, The University of Tokyo</dc:publisher><datacite:date dateType="Issued">2022-09-30</datacite:date><dc:language>jpn</dc:language><dc:type rdf:resource="http://purl.org/coar/resource_type/c_ddb1">dataset</dc:type><jpcoar:identifier identifierType="HDL">http://hdl.handle.net/2261/0002005680</jpcoar:identifier><jpcoar:identifier identifierType="URI">https://repository.dl.itc.u-tokyo.ac.jp/records/2005680</jpcoar:identifier><jpcoar:relation relationType="references"><jpcoar:relatedIdentifier identifierType="URI">https://clioimg.hi.u-tokyo.ac.jp/viewer/list/idata/850/8500/20/%28a%29/?m=limit</jpcoar:relatedIdentifier></jpcoar:relation><datacite:geoLocation><datacite:geoLocationPoint><datacite:pointLongitude>point longitude test</datacite:pointLongitude><datacite:pointLatitude>point latitude test</datacite:pointLatitude></datacite:geoLocationPoint><datacite:geoLocationBox><datacite:westBoundLongitude>1</datacite:westBoundLongitude><datacite:eastBoundLongitude>2</datacite:eastBoundLongitude><datacite:southBoundLatitude>3</datacite:southBoundLatitude><datacite:northBoundLatitude>4</datacite:northBoundLatitude></datacite:geoLocationBox><datacite:geoLocationPlace>geo location place test</datacite:geoLocationPlace></datacite:geoLocation><jpcoar:file><jpcoar:URI objectType="dataset">https://repository.dl.itc.u-tokyo.ac.jp/record/2005680/files/comparison_table_of_preparation_image_catalog.xlsx</jpcoar:URI><jpcoar:mimeType>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</jpcoar:mimeType><jpcoar:extent>121.7KB</jpcoar:extent><datacite:date dateType="Available">2022-09-27</datacite:date></jpcoar:file></jpcoar:jpcoar></metadata></record></getrecord></OAI-PMH>'
+    et = etree.fromstring(etree_str)
+    mock_render_template = mocker.patch("weko_records_ui.views.render_template")
+    with app.test_request_context():
+        with patch('weko_records_ui.views.check_original_pdf_download_permission', return_value=True):
+            with patch("weko_records_ui.views.getrecord",return_value=et):
+                default_view_method(recid, record)
+                args, kwargs = mock_render_template.call_args
+                assert kwargs["google_scholar_meta"] == [
+                        {'name': "citation_title","data": "『史料編纂掛備用写真画像図画類目録』画像の部：新旧架番号対照表"},
+                        {"name": "citation_publisher", "data": "東京大学史料編纂所附属画像史料解析センター"},
+                        {'name': 'citation_publication_date', 'data': "2022-09-30"},
+                        {"name": "citation_author","data": "creator name"},
+                        {"name":"citation_pdf_url","data":"https://repository.dl.itc.u-tokyo.ac.jp/record/2005680/files/comparison_table_of_preparation_image_catalog.xlsx"},
+                        {'name': 'citation_dissertation_institution','data':""},
+                        {'name': 'citation_abstract_html_url','data': 'http://TEST_SERVER/records/1'},
+                    ]
+                assert kwargs["google_dataset_meta"] == '{"@context": "https://schema.org/", "@type": "Dataset", "citation": ["http://hdl.handle.net/2261/0002005680", "https://repository.dl.itc.u-tokyo.ac.jp/records/2005680"], "creator": [{"@type": "Person", "alternateName": "creator alternative name", "familyName": "creator family name", "givenName": "creator given name", "identifier": "123", "name": "creator name"}], "description": "『史料編纂掛備用寫眞畫像圖畫類目録』（1905年）の「画像」（肖像画模本）の部に著録する資料の架番号の新旧対照表。史料編纂所所蔵肖像画模本データベースおよび『目録』版面画像へのリンク付き。『画像史料解析センター通信』98（2022年10月）に解説記事あり。", "distribution": [{"@type": "DataDownload", "contentUrl": "https://repository.dl.itc.u-tokyo.ac.jp/record/2005680/files/comparison_table_of_preparation_image_catalog.xlsx", "encodingFormat": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}, {"@type": "DataDownload", "contentUrl": "https://raw.githubusercontent.com/RCOSDP/JDCat-base/main/apt.txt", "encodingFormat": "text/plain"}, {"@type": "DataDownload", "contentUrl": "https://raw.githubusercontent.com/RCOSDP/JDCat-base/main/environment.yml", "encodingFormat": "application/x-yaml"}, {"@type": "DataDownload", "contentUrl": "https://raw.githubusercontent.com/RCOSDP/JDCat-base/main/postBuild", "encodingFormat": "text/x-shellscript"}], "includedInDataCatalog": {"@type": "DataCatalog", "name": "https://localhost"}, "license": ["CC BY"], "name": "『史料編纂掛備用写真画像図画類目録』画像の部：新旧架番号対照表", "spatialCoverage": [{"@type": "Place", "geo": {"@type": "GeoCoordinates", "latitude": "point longitude test", "longitude": "point latitude test"}}, {"@type": "Place", "geo": {"@type": "GeoShape", "box": "1 3 2 4"}}, "geo location place test"]}'

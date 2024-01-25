@@ -2,6 +2,14 @@ require([
   "jquery",
   "bootstrap"
 ], function () {
+  /*
+  $(function(){
+    history.pushState(null,null,null)
+    window.addEventListener('popstate', function(e) {
+      $('a.back-button')[0].click()
+    });
+  })
+  */
   /**
    * Start Loading
    * @param actionButton
@@ -438,6 +446,61 @@ function searchResItemLinkCtrl($scope, $rootScope, $http, $location) {
 //   delete button
   $scope.del_link = function(index){
     $scope.link_item_list.splice(index, 1);
+  };
+
+//   back button
+  $scope.btn_back = function() {
+    let backButton = $("#item-link-back-btn");
+    $scope.startLoading(backButton);
+    var post_url = $('.cur_step').data('next-uri');
+    if (!post_url) {
+      let error_msg = $('#AutoCancelMsg').text();
+      $('#cancelModalBody').text(error_msg);
+      $('#cancelModal').modal('show');
+    }
+    let post_data = {
+      commond: $('#input-comment').val(),
+      action_version: $('.cur_step').data('action-version')
+    };
+    post_url = post_url + "/rejectOrReturn/0";
+    $.ajax({
+      url: post_url,
+      method: 'POST',
+      async: true,
+      contentType: 'application/json',
+      data: JSON.stringify(post_data),
+      success: function (data, status) {
+        if (0 == data.code) {
+          if (data.hasOwnProperty('data') && data.data.hasOwnProperty('redirect')) {
+            document.location.href = data.data.redirect;
+          } else {
+            let origin = new URL(window.location.href).origin;
+            let redirect_uri = origin + "/workflow/activity/detail/" + $("#activity_id").text().trim();
+            document.location.href = redirect_uri;
+          }
+        } else if (-2 == data.code) {
+          let error_msg = $('#AutoCancelMsg').text();
+          $('#cancelModalBody').text(error_msg);
+          $('#cancelModal').modal('show');
+        } else {
+          endLoading(_this);
+          alert(data.msg);
+        }
+      },
+      error: function (jqXHR, status) {
+        if (-2 == jqXHR.responseJSON.code) {
+          let error_msg = $('#AutoCancelMsg').text();
+          $('#cancelModalBody').text(error_msg);
+          $('#cancelModal').modal('show');
+        } else if (-1 == jqXHR.responseJSON.code) {
+          endLoading(_this);
+          alert(jqXHR.responseJSON.msg);
+        } else{
+          endLoading(_this);
+          alert('server error');
+        }
+      }
+    });
   };
 
 //   save button

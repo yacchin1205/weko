@@ -23,9 +23,13 @@ import shutil
 from datetime import datetime, timedelta
 
 from celery import shared_task
+from celery.result import AsyncResult
 from celery.task.control import inspect
 from flask import current_app
 from weko_admin.api import TempDirInfo
+from weko_admin.utils import get_redis_cache
+from weko_redis.redis import RedisConnection
+from invenio_db import db
 
 from .utils import (
     check_import_items,
@@ -90,6 +94,16 @@ def remove_temp_dir_task(path):
 
 
 @shared_task
+def delete_task_id_cache(task_id, cache_key):
+    """delete admin_cache_KEY_EXPORT_ALL_{user_id} from redis"""
+    if get_redis_cache(cache_key) == task_id:
+        state = AsyncResult(task_id).state
+        if state == "REVOKED":
+            redis_connection = RedisConnection()
+            datastore = redis_connection.connection(db=current_app.config['CACHE_REDIS_DB'], kv = True)
+            datastore.delete(cache_key)
+
+@shared_task
 def export_all_task(root_url, user_id, data):
     """Export all items."""
     from weko_admin.utils import reset_redis_cache
@@ -100,6 +114,11 @@ def export_all_task(root_url, user_id, data):
         name=_task_config,
         user_id=user_id
     )
+    _task_key_config = current_app.config["WEKO_SEARCH_UI_BULK_EXPORT_TASK"]
+    _task_key = current_app.config["WEKO_ADMIN_CACHE_PREFIX"].format(
+        name=_task_key_config,
+        user_id=user_id
+    )
 
     uri = export_all(root_url, user_id, data)
     reset_redis_cache(_cache_key, uri)
@@ -107,15 +126,25 @@ def export_all_task(root_url, user_id, data):
         args=(
             uri,
             _cache_key,
+            _task_key
         ),
         countdown=int(_expired_time) * 60,
     )
 
 
 @shared_task
-def delete_exported_task(uri, cache_key):
+def delete_exported_task(uri, cache_key, task_key):
     """Delete expired exported file."""
-    delete_exported(uri, cache_key)
+    redis_connection = RedisConnection()
+    datastore = redis_connection.connection(db=current_app.config['CACHE_REDIS_DB'], kv = True)
+    if datastore.redis.exists(cache_key):
+        datastore.delete(task_key)
+    try:
+        delete_exported(uri, cache_key)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(e)
 
 
 def is_import_running():

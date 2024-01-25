@@ -133,12 +133,15 @@ def initialize_communities_bucket():
             bucket_id))
     else:
         storage_class = current_app.config['FILES_REST_DEFAULT_STORAGE_CLASS']
-        location = Location.get_default()
-        bucket = Bucket(id=bucket_id,
-                        location=location,
-                        default_storage_class=storage_class)
-        db.session.add(bucket)
-        db.session.commit()
+        try:
+            location = Location.get_default()
+            bucket = Bucket(id=bucket_id,
+                            location=location,
+                            default_storage_class=storage_class)
+            db.session.add(bucket)
+            db.session.commit()
+        except Exception as ex:
+            db.session.rollback()
 
 
 def format_request_email_templ(increq, template, **ctx):
@@ -218,7 +221,7 @@ def send_community_request_email(increq):
     msg = Message(
         msg_title,
         sender=sender,
-        recipients=[increq.community.owner.email, ],
+        recipients=[increq.community.owner_user.email, ],
         body=msg_body
     )
 

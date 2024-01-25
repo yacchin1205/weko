@@ -118,6 +118,7 @@ from weko_search_ui.utils import (
     update_publish_status,
     validation_date_property,
     validation_file_open_date,
+    combine_aggs
 )
 
 FIXTURE_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data")
@@ -621,8 +622,10 @@ def test_make_stats_file(i18n_app):
 
 
 # def create_deposit(item_id):
+# .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_create_deposit -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
 def test_create_deposit(i18n_app, location, indices):
-    assert create_deposit(33)
+    assert create_deposit(None)['recid']=='1'
+    assert create_deposit(33)['recid']=='33'
 
 
 # def clean_thumbnail_file(deposit, root_path, thumbnail_path):
@@ -748,9 +751,10 @@ def test_send_item_created_event_to_es(
 
 
 # def import_items_to_system(item: dict, request_info=None, is_gakuninrdm=False): ERROR = TypeError: handle_remove_es_metadata() missing 2 required positional arguments: 'bef_metadata' and 'bef_las...
+# .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_import_items_to_system -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
 def test_import_items_to_system(i18n_app, es_item_file_pipeline, es_records):
     # item = dict(db_activity['item'])
-    item = es_records["results"][0]["item"]
+    item = es_records["results"][0]
 
     with patch("weko_search_ui.utils.register_item_metadata", return_value={}):
         with patch("weko_search_ui.utils.register_item_doi", return_value={}):
@@ -759,21 +763,21 @@ def test_import_items_to_system(i18n_app, es_item_file_pipeline, es_records):
                 return_value={},
             ):
                 with patch(
-                    "weko_search_ui.utils.create_deposit", return_value=item["id"]
+                    "weko_search_ui.utils.create_deposit", return_value=item["deposit"]
                 ):
                     with patch(
                         "weko_search_ui.utils.send_item_created_event_to_es",
-                        return_value=item["id"],
+                        return_value=item["item"]["id"],
                     ):
                         with patch(
                             "weko_workflow.utils.get_cache_data", return_value=True
                         ):
-                            assert import_items_to_system(item)
-                            item["status"] = "new"
-                            assert import_items_to_system(item)
+                            assert import_items_to_system(item["item"])
+                            item["item"]["status"] = "new"
+                            assert import_items_to_system(item["item"])
 
                     assert import_items_to_system(
-                        item
+                        item["item"]
                     )  # Will result in error but will cover exception part
 
 
@@ -827,6 +831,33 @@ def test_handle_check_and_prepare_index_tree(i18n_app, record_with_metadata, ind
     assert not handle_check_and_prepare_index_tree(
         list_record, all_index_permission, can_edit_indexes
     )
+
+
+# def handle_check_and_prepare_index_tree(list_record, all_index_permission, can_edit_indexes):
+# .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_handle_check_and_prepare_index_tree2 -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
+def test_handle_check_and_prepare_index_tree2(i18n_app, record_with_metadata, indices2):
+    i18n_app.config["WEKO_ITEMS_UI_INDEX_PATH_SPLIT"] = "///"
+    list_record = [record_with_metadata[0]]
+
+    list_record[0]["metadata"]["path"] = []
+    list_record[0]["pos_index"] = ["A///C"]
+    all_index_permission = False
+    handle_check_and_prepare_index_tree(
+        list_record, all_index_permission, None
+    )
+    assert list_record[0]["metadata"]["path"] == []
+
+    list_record[0]["metadata"]["path"] = []
+    handle_check_and_prepare_index_tree(
+        list_record, all_index_permission, [4]
+    )
+    assert list_record[0]["metadata"]["path"] == []
+
+    list_record[0]["metadata"]["path"] = []
+    handle_check_and_prepare_index_tree(
+        list_record, all_index_permission, [2]
+    )
+    assert list_record[0]["metadata"]["path"] == [2]
 
 
 # def handle_check_and_prepare_feedback_mail(list_record):
@@ -1407,223 +1438,230 @@ def test_handle_fill_system_item(app, test_list_records, mocker):
 # .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_handle_fill_system_item3 -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
 # doi2, doi_ra2 は自動補完が原則
 @pytest.mark.parametrize(
-    "item_id, before_doi,after_doi,warnings,errors,is_change_identifier",
+    "item_id, before_doi,after_doi,warnings,errors,is_change_identifier,is_register_cnri",
     [
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False),
-        (1,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC2","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (1,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (1,{"doi": None,"doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True),
-        (1,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False,False),
+        (1,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],False,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC2","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (1,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (1,{"doi": None,"doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True,False),
+        (1,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
         
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},[],[],True),
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True),
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC2","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},[],[],True),
-        (1,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True),
-        (1,{"doi": "xyz.jalc/0000000001","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (1,{"doi": None,"doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC","doi2": "","doi_ra2":"JaLC"},[],['Please specify DOI prefix/suffix.'],True),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":""},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},[],[],True,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000001","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "xyz.jalc/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.jalc/0000000001","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},[],[],True,False),
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True,False),
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC2","doi2": "xyz.jalc/0000000001","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (1,{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},{"doi": "xyz.jalc/0000000002","doi_ra":"JaLC","doi2": "xyz.jalc/0000000002","doi_ra2":"JaLC"},[],[],True,False),
+        (1,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,False),
+        (1,{"doi": "xyz.jalc/0000000001","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/0000000001","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (1,{"doi": None,"doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC","doi2": "","doi_ra2":"JaLC"},[],['Please specify DOI prefix/suffix.'],True,False),
         
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False),
-        (2,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"JaLC2","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (2,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (2,{"doi": None,"doi_ra":"Crossref","doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False,False),
+        (2,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],False,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"JaLC2","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (2,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (2,{"doi": None,"doi_ra":"Crossref","doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
         
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True),
-        (2,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True,False),
+        (2,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
         
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},[],[],True),
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True),
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"JaLC2","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000003","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},[],[],True),
-        (2,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True),
-        (2,{"doi": "xyz.crossref/0000000002","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (2,{"doi": None,"doi_ra":"Crossref","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"Crossref","doi2": "","doi_ra2":"Crossref"},[],['Please specify DOI prefix/suffix.'],True),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":""},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},[],[],True,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000002","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "xyz.crossref/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.crossref/0000000002","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "","doi_ra2":""},{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},[],[],True,False),
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True,False),
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"JaLC2","doi2": "xyz.crossref/0000000002","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000003","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (2,{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},{"doi": "xyz.crossref/0000000003","doi_ra":"Crossref","doi2": "xyz.crossref/0000000003","doi_ra2":"Crossref"},[],[],True,False),
+        (2,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,False),
+        (2,{"doi": "xyz.crossref/0000000002","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.crossref/0000000002","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (2,{"doi": None,"doi_ra":"Crossref","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"Crossref","doi2": "","doi_ra2":"Crossref"},[],['Please specify DOI prefix/suffix.'],True,False),
         
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False),
-        (3,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000004","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"JaLC2","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (3,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (3,{"doi": None,"doi_ra":"DataCite","doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False,False),
+        (3,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],False,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000004","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"JaLC2","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (3,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (3,{"doi": None,"doi_ra":"DataCite","doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
         
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True),
-        (3,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000004","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},[],[],True),
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True),
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"JaLC2","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000004","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},[],[],True),
-        (3,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True),
-        (3,{"doi": "xyz.datacite/0000000003","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (3,{"doi": None,"doi_ra":"DataCite","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"DataCite","doi2": "","doi_ra2":"DataCite"},[],['Please specify DOI prefix/suffix.'],True),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True,False),
+        (3,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":""},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},[],[],True,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000003","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "xyz.datacite/0000000004","doi_ra2":"JaLC"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.datacite/0000000003","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "","doi_ra2":""},{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},[],[],True,False),
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True,False),
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"JaLC2","doi2": "xyz.datacite/0000000003","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000004","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (3,{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.datacite/0000000004","doi_ra":"DataCite","doi2": "xyz.datacite/0000000004","doi_ra2":"DataCite"},[],[],True,False),
+        (3,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,False),
+        (3,{"doi": "xyz.datacite/0000000003","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.datacite/0000000003","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (3,{"doi": None,"doi_ra":"DataCite","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"DataCite","doi2": "","doi_ra2":"DataCite"},[],['Please specify DOI prefix/suffix.'],True,False),
         
                
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False),
-        (4,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000005","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False), 
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"JaLC2","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
-        (4,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (4,{"doi": None,"doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False,False),
+        (4,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],False,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000005","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False), 
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"JaLC2","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
+        (4,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.','The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],False,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (4,{"doi": None,"doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],False,False),
         
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True),
-        (4,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000005","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True), 
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},[],[],True),
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True),
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"JaLC2","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000005","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},[],[],True),
-        (4,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True),
-        (4,{"doi": "xyz.ndl/0000000004","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (4,{"doi": None,"doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"NDL JaLC","doi2": "","doi_ra2":"NDL JaLC"},[],['Please specify DOI prefix/suffix.'],True),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True,False),
+        (4,{"doi": "","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "","doi_ra":"","doi2": "","doi_ra2":""},[],['Please specify DOI prefix/suffix.'],True,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":""},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},[],[],True,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000004","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "xyz.ndl/0000000005","doi_ra2":"DataCite"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.', 'The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC", "doi2": "","doi_ra2":"JaLC2"},{"doi": "xyz.ndl/0000000004","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},['The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'],[],True,False), 
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "","doi_ra2":""},{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},[],[],True,False),
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},['The specified DOI is wrong and fixed with the registered DOI.'],[],True,False),
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"JaLC2","doi2": "xyz.ndl/0000000004","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000005","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (4,{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},{"doi": "xyz.ndl/0000000005","doi_ra":"NDL JaLC","doi2": "xyz.ndl/0000000005","doi_ra2":"NDL JaLC"},[],[],True,False),
+        (4,{"doi": None,"doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,False),
+        (4,{"doi": "xyz.ndl/0000000004","doi_ra":None,"doi2": None,"doi_ra2":None},{"doi": "xyz.ndl/0000000004","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (4,{"doi": None,"doi_ra":"NDL JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"NDL JaLC","doi2": "","doi_ra2":"NDL JaLC"},[],['Please specify DOI prefix/suffix.'],True,False),
         
-        (5,{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"Crossref","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),       
-        (5,{"doi":"","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"DataCite","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},[],[],False),
-        (5,{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (5,{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],['Specified Prefix of DOI is incorrect.'],False),
-        (5,{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],['Specified Prefix of DOI is incorrect.'],False),
+        (5,{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"Crossref","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),       
+        (5,{"doi":"","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"DataCite","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},[],[],False,False),
+        (5,{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (5,{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],['Specified Prefix of DOI is incorrect.'],False,False),
+        (5,{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},[],['Specified Prefix of DOI is incorrect.'],False,False),
         # 更新によるDOI付与
-        (5,{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True),
-        (5,{"doi":"","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"JaLC","doi2":"","doi_ra2":"JaLC"},[],['Please specify DOI prefix/suffix.'],True),
-        (5,{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":"xyz.jalc","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":"xyz.jalc/","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.jalc/xyz","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/xyz","doi_ra":"JaLC","doi2":"xyz.jalc/xyz","doi_ra2":"JaLC"},[],[],True),
-        (5,{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"Crossref","doi2":"","doi_ra2":"Crossref"},[],['Please specify DOI prefix/suffix.'],True),
-        (5,{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":"xyz.crossref","doi_ra2":"Crossref"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":"xyz.crossref/","doi_ra2":"Crossref"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"DataCite","doi2":"","doi_ra2":"DataCite"},[],['Please specify DOI prefix/suffix.'],True),
-        (5,{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":"xyz.datacite","doi_ra2":"DataCite"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":"xyz.datacite/","doi_ra2":"DataCite"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"NDL JaLC","doi2":"","doi_ra2":"NDL JaLC"},[],['Please specify DOI prefix/suffix.'],True),
-        (5,{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":"xyz.ndl","doi_ra2":"NDL JaLC"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":"xyz.ndl/","doi_ra2":"NDL JaLC"},[],['Please specify DOI suffix.'],True),
-        (5,{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (5,{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":"xyz.ndl","doi_ra2":"JaLC"},[],['Please specify DOI suffix.', 'Specified Prefix of DOI is incorrect.'],True),
-        (5,{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":"xyz.ndl/","doi_ra2":"JaLC"},[],['Please specify DOI suffix.', 'Specified Prefix of DOI is incorrect.'],True),
+        (5,{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,False),
+        (5,{"doi":"","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"JaLC","doi2":"","doi_ra2":"JaLC"},[],['Please specify DOI prefix/suffix.'],True,False),
+        (5,{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"JaLC","doi2":"xyz.jalc","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"JaLC","doi2":"xyz.jalc/","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.jalc/xyz","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/xyz","doi_ra":"JaLC","doi2":"xyz.jalc/xyz","doi_ra2":"JaLC"},[],[],True,False),
+        (5,{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.jalc/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"Crossref","doi2":"","doi_ra2":"Crossref"},[],['Please specify DOI prefix/suffix.'],True,False),
+        (5,{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"Crossref","doi2":"xyz.crossref","doi_ra2":"Crossref"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"Crossref","doi2":"xyz.crossref/","doi_ra2":"Crossref"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.crossref/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"DataCite","doi2":"","doi_ra2":"DataCite"},[],['Please specify DOI prefix/suffix.'],True,False),
+        (5,{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"DataCite","doi2":"xyz.datacite","doi_ra2":"DataCite"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"DataCite","doi2":"xyz.datacite/","doi_ra2":"DataCite"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.datacite/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"","doi_ra":"NDL JaLC","doi2":"","doi_ra2":"NDL JaLC"},[],['Please specify DOI prefix/suffix.'],True,False),
+        (5,{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"NDL JaLC","doi2":"xyz.ndl","doi_ra2":"NDL JaLC"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"NDL JaLC","doi2":"xyz.ndl/","doi_ra2":"NDL JaLC"},[],['Please specify DOI suffix.'],True,False),
+        (5,{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"","doi2":None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (5,{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl","doi_ra":"JaLC","doi2":"xyz.ndl","doi_ra2":"JaLC"},[],['Please specify DOI suffix.', 'Specified Prefix of DOI is incorrect.'],True,False),
+        (5,{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":None,"doi_ra2":None},{"doi":"xyz.ndl/","doi_ra":"JaLC","doi2":"xyz.ndl/","doi_ra2":"JaLC"},[],['Please specify DOI suffix.', 'Specified Prefix of DOI is incorrect.'],True,False),
         # 新規登録時DOI付与
-        (None,{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],[],False),
-        (None,{"doi": "","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],[],False),
-        (None,{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],[],False),
-        (None,{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],[],False),
-        (None,{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (None,{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (None,{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False),
-        (None,{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],['Do not specify DOI suffix.'],False),
+        (None,{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],[],False,False),
+        (None,{"doi": "","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],[],False,False),
+        (None,{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],[],False,False),
+        (None,{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],[],False,False),
+        (None,{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (None,{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (None,{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],False,False),
+        (None,{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},[],['Do not specify DOI suffix.'],False,False),
         # 新規登録時DOI付与
-        (None,{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True),
-        (None,{"doi": "","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC","doi2": "","doi_ra2":"JaLC"},[],['Please specify DOI prefix/suffix.'],True),
-        (None,{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": "xyz.jalc","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True),
-        (None,{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": "xyz.jalc/","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True),
-        (None,{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (None,{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (None,{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True),
-        (None,{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": "xyz.jalc/abc","doi_ra2":"JaLC"},[],[],True),
-        
+        (None,{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,False),
+        (None,{"doi": "","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC","doi2": "","doi_ra2":"JaLC"},[],['Please specify DOI prefix/suffix.'],True,False),
+        (None,{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"JaLC","doi2": "xyz.jalc","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True,False),
+        (None,{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"JaLC","doi2": "xyz.jalc/","doi_ra2":"JaLC"},[],['Please specify DOI suffix.'],True,False),
+        (None,{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (None,{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (None,{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},{"doi": "","doi_ra":"JaLC2","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.', 'DOI_RA should be set by one of JaLC, Crossref, DataCite, NDL JaLC.'],True,False),
+        (None,{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": "xyz.jalc/abc","doi_ra2":"JaLC"},[],[],True,False),
+        # cnri登録可能
+        (None,{"cnri":"","doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"cnri":"", "doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": "xyz.jalc/abc","doi_ra2":"JaLC"},[],[],True,True),
+        (None,{"cnri":"","doi": "","doi_ra":"","doi2": None,"doi_ra2":None},{"cnri":"","doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],['Please specify DOI prefix/suffix.'],True,True),
+        (None,{"cnri":"test_cnri","doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": None,"doi_ra2":None},{"cnri":"test_cnri","doi": "xyz.jalc/abc","doi_ra":"JaLC","doi2": "xyz.jalc/abc","doi_ra2":"JaLC"},[],[],True,True),
+        (None,{"cnri":"test_cnri","doi": "","doi_ra":"","doi2": None,"doi_ra2":None},{"cnri":"test_cnri","doi": "","doi_ra":"","doi2": None,"doi_ra2":None},[],[],True,True),
     ])
-def test_handle_fill_system_item3(app,doi_records,item_id,before_doi,after_doi,warnings,errors,is_change_identifier):
+def test_handle_fill_system_item3(app,doi_records,item_id,before_doi,after_doi,warnings,errors,is_change_identifier,is_register_cnri):
+    app.config.update(
+        WEKO_HANDLE_ALLOW_REGISTER_CRNI=is_register_cnri
+    )
     before = {
             "metadata": {
                 "path": ["1667004052852"],
@@ -1671,7 +1709,10 @@ def test_handle_fill_system_item3(app,doi_records,item_id,before_doi,after_doi,w
         before["doi_ra"]="{}".format(before_doi['doi_ra'])
     
     if before_doi['doi'] is not None:
-        before["doi"]="{}".format(before_doi['doi'])                       
+        before["doi"]="{}".format(before_doi['doi'])
+    
+    if "cnri" in before_doi and before_doi["cnri"] is not None:
+        before["cnri"] = "{}".format(before_doi["cnri"])
     
     before_list = [before]
     after = {
@@ -1726,6 +1767,9 @@ def test_handle_fill_system_item3(app,doi_records,item_id,before_doi,after_doi,w
         after["metadata"]["item_1617186819068"]= after["metadata"].get("item_1617186819068",{})
         after["metadata"]["item_1617186819068"]["subitem_identifier_reg_text"]= "{}".format(after_doi['doi2'])
 
+    if "cnri" in after_doi and after_doi["cnri"] is not None:
+        after["cnri"] = after_doi["cnri"]
+    
     after_list = [after]
     
     if is_change_identifier:
@@ -2004,16 +2048,53 @@ def test_delete_exported(i18n_app, file_instance_mock):
 
 
 # def cancel_export_all():
-# def test_cancel_export_all(i18n_app, users):
-# with patch("flask_login.utils._get_user", return_value=users[3]['obj']):
-# with patch("weko_admin.utils.get_redis_cache", return_value=""):
-# with patch("weko_search_ui.utils.get_export_status", return_value=True):
-# with patch("celery.task.control.revoke", return_value=""):
-# assert cancel_export_all()
+# .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_cancel_export_all -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
+def test_cancel_export_all(i18n_app, users, redis_connect, mocker):
+    with patch("flask_login.utils._get_user", return_value=users[3]['obj']):
+        cache_key = i18n_app.config["WEKO_ADMIN_CACHE_PREFIX"].format(
+            name="KEY_EXPORT_ALL", user_id=current_user.get_id()
+        )
+        datastore = redis_connect
+        datastore.put(cache_key, "test_task_key".encode("utf-8"), ttl_secs=30)
+
+        # export_status is True
+        with patch("weko_search_ui.utils.get_export_status", return_value=(True,None,None,None,None)):
+            mock_revoke = mocker.patch("weko_search_ui.utils.revoke")
+            mock_delete_id = mocker.patch("weko_search_ui.utils.delete_task_id_cache.apply_async")
+            result = cancel_export_all()
+            assert result == True
+            mock_revoke.assert_called_with("test_task_key",terminate=True)
+            mock_delete_id.assert_called_with(args=("test_task_key","admin_cache_KEY_EXPORT_ALL_5"),countdown=60)
+        
+        # export_status is False
+        with patch("weko_search_ui.utils.get_export_status", return_value=(False,None,None,None,None)):
+            mock_revoke = mocker.patch("weko_search_ui.utils.revoke")
+            mock_delete_id = mocker.patch("weko_search_ui.utils.delete_task_id_cache.apply_async")
+            result = cancel_export_all()
+            assert result == True
+            mock_revoke.assert_not_called()
+            mock_delete_id.assert_not_called()
+        
+        # raise Exception
+        with patch("weko_search_ui.utils.get_export_status",side_effect=Exception("test_error")):
+            result = cancel_export_all()
+            assert result == False
 
 
 # def get_export_status():
-def test_get_export_status(i18n_app, users, redis_connect):
+# .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_get_export_status -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
+def test_get_export_status(i18n_app, users, redis_connect,mocker):
+    class MockAsyncResult:
+        def __init__(self,task_id):
+            self.task_id=task_id
+        @property
+        def state(self):
+            return self.task_id.replace("_task","")
+        def successful(self):
+            return self.state == "SUCCESS"
+        def failed(self):
+            return self.state == "FAILED"
+    mocker.patch("weko_search_ui.utils.AsyncResult",side_effect=MockAsyncResult)
     with patch("flask_login.utils._get_user", return_value=users[3]["obj"]):
         cache_key = i18n_app.config["WEKO_ADMIN_CACHE_PREFIX"].format(
             name="KEY_EXPORT_ALL", user_id=current_user.get_id()
@@ -2028,11 +2109,30 @@ def test_get_export_status(i18n_app, users, redis_connect):
             name="RUN_MSG_EXPORT_ALL", user_id=current_user.get_id()
         )
         datastore = redis_connect
-        datastore.put(cache_key, json.dumps({"1": "a"}).encode("utf-8"), ttl_secs=30)
-        datastore.put(cache_uri, json.dumps({"1": "a"}).encode("utf-8"), ttl_secs=30)
-        datastore.put(cache_msg, json.dumps({"1": "a"}).encode("utf-8"), ttl_secs=30)
-        datastore.put(run_msg, json.dumps({"1": "a"}).encode("utf-8"), ttl_secs=30)
-        assert get_export_status()
+        
+        datastore.put(cache_uri, "test_uri".encode("utf-8"), ttl_secs=30)
+        datastore.put(cache_msg, "test_msg".encode("utf-8"), ttl_secs=30)
+        datastore.put(run_msg, "test_run_msg".encode("utf-8"), ttl_secs=30)
+        # task is success, failed, revoked
+        datastore.put(cache_key, "SUCCESS_task".encode("utf-8"), ttl_secs=30)
+        result=get_export_status()
+        assert result == (False, "test_uri", "test_msg", "test_run_msg", "SUCCESS")
+        
+        # task is not success, failed, revoked
+        datastore.delete(cache_key)
+        datastore.put(cache_key, "PENDING_task".encode("utf-8"), ttl_secs=30)
+        result=get_export_status()
+        assert result == (True, "test_uri", "test_msg", "test_run_msg", "PENDING")
+        
+        # not exist task_id
+        datastore.delete(cache_key)
+        result=get_export_status()
+        assert result == (False, "test_uri", "test_msg", "test_run_msg", "")
+        
+        # raise Exception
+        with patch("weko_search_ui.utils.AsyncResult",side_effect=Exception("test_error")):
+            result=get_export_status()
+            assert result == (False, "test_uri", "test_msg", "test_run_msg", "")
 
 
 # def handle_check_item_is_locked(item):
@@ -2567,3 +2667,25 @@ def test_handle_check_exist_record_issue35315(app, doi_records, id, uri, warning
         assert before_list != after_list
         result = handle_check_exist_record(before_list)
         assert after_list == result
+
+
+# .tox/c1/bin/pytest --cov=weko_search_ui tests/test_utils.py::test_conbine_aggs -v -vv -s --cov-branch --cov-report=term --basetemp=/code/modules/weko-search-ui/.tox/c1/tmp
+def test_conbine_aggs():
+    some_path = {"took": "215","time_out": False,"_shards": {"total": "1","successful": "1","skipped": "0","failed": "0"},"hits": {"total": "0","max_score": None,"hits": []},"aggregations": {"path_0": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []},"path_1": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [{"key": "1234567891011","doc_count": "1","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "1"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}}]},"path_2": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [{"key": "1234567891012","doc_count": "2","date_range": {"doc_count": "2","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891013","doc_count": "3","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "3"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}}]}}}
+    test = {"took": "215","time_out": False,"_shards": {"total": "1","successful": "1","skipped": "0","failed": "0"},"hits": {"total": "0","max_score": None,"hits": []},"aggregations": {"path": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [{"key": "1234567891011","doc_count": "1","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "1"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891012","doc_count": "2","date_range": {"doc_count": "2","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891013","doc_count": "3","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "3"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}}]}}}
+    result = combine_aggs(some_path)
+    assert test == result
+    
+    one_path = {"took": "215","time_out": False,"_shards": {"total": "1","successful": "1","skipped": "0","failed": "0"},"hits": {"total": "0","max_score": None,"hits": []},"aggregations": {"path": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [{"key": "1234567891011","doc_count": "1","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "1"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891012","doc_count": "2","date_range": {"doc_count": "2","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891013","doc_count": "3","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "3"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}}]}}}
+    result = combine_aggs(one_path)
+    assert test == result
+    
+    not_agg = {"took": "215","time_out": False,"_shards": { "total": "1", "successful": "1", "skipped": "0", "failed": "0" },"hits": { "total": "0", "max_score": None, "hits": [] }}
+    test = {'took': '215', 'time_out': False, '_shards': {'total': '1', 'successful': '1', 'skipped': '0', 'failed': '0'}, 'hits': {'total': '0', 'max_score': None, 'hits': []}}
+    result = combine_aggs(not_agg)
+    assert test == result
+    
+    other_agg = {"took": "215","time_out": False,"_shards": { "total": "1", "successful": "1", "skipped": "0", "failed": "0" },"hits": { "total": "0", "max_score": None, "hits": [] },"aggregations":{"path_0":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},"path_1":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets":[{"key": "1234567891011","doc_count": "1","date_range":{"doc_count": "1","available":{"buckets":[{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "1",},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0",},],},},"Data Type":{"doc_count": "0","Data Type":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Distributor":{"doc_count": "0","Distributor":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Data Language":{"doc_count": "1","Data Language":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Temporal":{"doc_count": "1","Temporal":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Access":{"doc_count": "1","Access":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"no_available": { "doc_count": "0" },"Topic":{"doc_count": "1","Topic":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Location":{"doc_count": "1","Location":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},},],},"path_2":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets":[{"key": "1234567891012","doc_count": "2","date_range":{"doc_count": "2","available":{"buckets":[{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2",},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0",},],},},"Data Type":{"doc_count": "0","Data Type":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Distributor":{"doc_count": "0","Distributor":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Data Language":{"doc_count": "1","Data Language":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Temporal":{"doc_count": "1","Temporal":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Access":{"doc_count": "1","Access":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"no_available": { "doc_count": "0" },"Topic":{"doc_count": "1","Topic":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Location":{"doc_count": "1","Location":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},},{"key": "1234567891013","doc_count": "3","date_range":{"doc_count": "1","available":{"buckets":[{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "3",},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0",},],},},"Data Type":{"doc_count": "0","Data Type":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Distributor":{"doc_count": "0","Distributor":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Data Language":{"doc_count": "1","Data Language":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Temporal":{"doc_count": "1","Temporal":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Access":{"doc_count": "1","Access":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"no_available": { "doc_count": "0" },"Topic":{"doc_count": "1","Topic":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},"Location":{"doc_count": "1","Location":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [],},},},],},"other":{"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets":[{"key": "1234567891012","doc_count": "2","date_range":{"doc_count": "2","available":{"buckets":[{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2",},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0",},],},},}]}},}
+    test = {"took": "215","time_out": False,"_shards": {"total": "1","successful": "1","skipped": "0","failed": "0"},"hits": {"total": "0","max_score": None,"hits": []},"aggregations": {"other": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [{"key": "1234567891012","doc_count": "2","date_range": {"doc_count": "2","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}}}]},"path": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": [{"key": "1234567891011","doc_count": "1","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "1"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891012","doc_count": "2","date_range": {"doc_count": "2","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "2"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}},{"key": "1234567891013","doc_count": "3","date_range": {"doc_count": "1","available": {"buckets": [{"key": "*-2023-07-25","to": "1690243200000.0","to_as_string": "2023-07-25","doc_count": "3"},{"key": "2023-07-25-*","from": "1690243200000.0","from_as_string": "2023-07-25","doc_count": "0"}]}},"Data Type": {"doc_count": "0","Data Type": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Distributor": {"doc_count": "0","Distributor": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Data Language": {"doc_count": "1","Data Language": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Temporal": {"doc_count": "1","Temporal": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Access": {"doc_count": "1","Access": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"no_available": {"doc_count": "0"},"Topic": {"doc_count": "1","Topic": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}},"Location": {"doc_count": "1","Location": {"doc_count_error_upper_bound": "0","sum_order_doc_count": "0","buckets": []}}}]}}}
+    result = combine_aggs(other_agg)
+    assert test == result

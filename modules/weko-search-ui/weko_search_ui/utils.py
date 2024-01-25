@@ -34,6 +34,7 @@ import zipfile
 from collections import Callable, OrderedDict
 from datetime import datetime
 from functools import partial, reduce, wraps
+import io
 from io import StringIO
 from operator import getitem
 from time import sleep
@@ -54,7 +55,6 @@ from invenio_files_rest.models import FileInstance, Location, ObjectVersion
 from invenio_files_rest.proxies import current_files_rest
 from invenio_files_rest.utils import find_and_update_location_size
 from invenio_i18n.ext import current_i18n
-from invenio_indexer.api import RecordIndexer
 from invenio_pidrelations.contrib.versioning import PIDVersioning
 from invenio_pidstore.errors import PIDDoesNotExistError
 from invenio_pidstore.models import PersistentIdentifier, PIDStatus
@@ -62,14 +62,6 @@ from invenio_records.api import Record
 from invenio_records.models import RecordMetadata
 from invenio_records_rest.errors import InvalidQueryRESTError
 from invenio_search import RecordsSearch
-from invenio_stats.config import SEARCH_INDEX_PREFIX as index_prefix
-from invenio_stats.models import StatsEvents
-from invenio_stats.processors import (
-    anonymize_user,
-    flag_restricted,
-    flag_robots,
-    hash_id,
-)
 from jsonschema import Draft4Validator
 from sqlalchemy import func as _func
 from sqlalchemy.exc import SQLAlchemyError
@@ -88,8 +80,8 @@ from weko_indextree_journal.api import Journals
 from weko_records.api import FeedbackMailList, ItemTypes, Mapping
 from weko_records.models import ItemMetadata
 from weko_records.serializers.utils import get_mapping
-from weko_records_ui.utils import soft_delete
 from weko_redis.redis import RedisConnection
+from weko_schema_ui.models import PublishStatus
 from weko_workflow.api import Flow, WorkActivity
 from weko_workflow.config import (
     IDENTIFIER_GRANT_LIST,
@@ -250,8 +242,8 @@ def delete_records(index_tree_id, ignore_items):
                     # Update to ES
                     indexer.update_es_data(record, update_revision=False)
                     record.commit()
-                    db.session.commit()
                 elif del_flag and removed_path is not None:
+                    from weko_records_ui.utils import soft_delete
                     soft_delete(pid)
                 else:
                     pass
@@ -590,7 +582,7 @@ def check_import_items(file, is_change_identifier: bool, is_gakuninrdm=False,
             handle_check_cnri(list_record)
             handle_check_doi_indexes(list_record)
             handle_check_doi_ra(list_record)
-            current_app.logger.error(list_record)
+            #current_app.logger.error(list_record)
             handle_check_doi(list_record)
         result["list_record"] = list_record
     except Exception as ex:
@@ -1092,7 +1084,7 @@ def create_deposit(item_id):
         dep = WekoDeposit.create({}, recid=int(item_id))
     else:
         dep = WekoDeposit.create({})
-    return dep["recid"]
+    return dep
 
 
 def clean_thumbnail_file(deposit, root_path, thumbnail_path):
@@ -1153,12 +1145,29 @@ def up_load_file(record, root_path, deposit, allow_upload_file_content, old_file
                     file, root_file_id=root_file_id, is_set_size_location=False
                 )
 
+                size = file.seek(0, io.SEEK_END)
+                if size >= pow(1024, 4):
+                    size_str = "{} TB".format(round(size/(pow(1024, 4)), 1))
+                elif size >= pow(1024, 3):
+                    size_str = "{} GB".format(round(size/(pow(1024, 3)), 1))
+                elif size >= pow(1024, 2):
+                    size_str = "{} MB".format(round(size/(pow(1024, 2)), 1))
+                elif size >= 1024:
+                    size_str = "{} KB".format(round(size/1024, 1))
+                else:
+                    size_str = "{} B".format(size)
+                if record.get("filenames") and \
+                        len(record["filenames"]) > idx and \
+                        record["filenames"][idx].get("filename"):
+                    file_size_dict[record["filenames"][idx]["filename"]] = [{'value': size_str}]
+
     def clean_file_contents(delete_all):
         # clean file contents in bucket.
         for file in deposit.files.bucket.objects:
             if not file.is_thumbnail and (delete_all or not file.is_head):
                 file.remove()
 
+    file_size_dict = {}
     file_path = record.get("file_path", []) if allow_upload_file_content else []
     thumbnail_path = record.get("thumbnail_path", [])
     if isinstance(thumbnail_path, str):
@@ -1171,6 +1180,8 @@ def up_load_file(record, root_path, deposit, allow_upload_file_content, old_file
         upload(thumbnail_path, is_thumbnail=True)
         upload(file_path)
     clean_file_contents(not allow_upload_file_content)
+
+    return file_size_dict
 
 
 def get_file_name(file_path):
@@ -1196,17 +1207,18 @@ def register_item_metadata(item, root_path, owner, is_gakuninrdm=False):
     def clean_file_metadata(item_type_id, data):
         # clear metadata of file information
         is_cleaned = True
-        item_map = get_mapping(Mapping.get_record(item_type_id), "jpcoar_mapping")
+        file_key = None
+        item_map = get_mapping(item_type_id, "jpcoar_mapping")
         key = item_map.get("file.URI.@value")
         if key:
-            key = key.split(".")[0]
-            if not data.get(key):
+            file_key = key.split(".")[0]
+            if not data.get(file_key):
                 deleted_items = data.get("deleted_items") or []
-                deleted_items.append(key)
+                deleted_items.append(file_key)
                 data["deleted_items"] = deleted_items
             else:
                 is_cleaned = False
-        return data, is_cleaned
+        return data, is_cleaned, file_key
 
     def autofill_thumbnail_metadata(item_type_id, data):
         key = get_thumbnail_key(item_type_id)
@@ -1298,13 +1310,18 @@ def register_item_metadata(item, root_path, owner, is_gakuninrdm=False):
                 old_file_list.append(None)
 
     # set delete flag for file metadata if is empty.
-    new_data, is_cleaned = clean_file_metadata(item["item_type_id"], new_data)
+    new_data, is_cleaned, file_key = clean_file_metadata(item["item_type_id"], new_data)
     # progress upload file, replace file contents.
-    up_load_file(item, root_path, deposit, not is_cleaned, old_file_list)
+    file_size_dict = up_load_file(item, root_path, deposit, not is_cleaned, old_file_list)
     new_data = autofill_thumbnail_metadata(item["item_type_id"], new_data)
 
     # check location file
     find_and_update_location_size()
+    if not is_cleaned:
+        for idx, file_info in enumerate(new_data.get(file_key, [])):
+            if file_info.get('filename') in file_size_dict \
+                    and not file_info.get('filesize'):
+                new_data[file_key][idx]['filesize'] = file_size_dict.get(file_info.get('filename'))
 
     # Clean item metadata
     if item["status"] != "new":
@@ -1338,15 +1355,15 @@ def register_item_metadata(item, root_path, owner, is_gakuninrdm=False):
 
     if not is_gakuninrdm:
         deposit.publish_without_commit()
-        # Create first version
         with current_app.test_request_context(get_url_root()):
-            if item["status"] in ["upgrade", "new"]:
+            if item["status"] in ["upgrade", "new"]:    # Create first version
                 _deposit = deposit.newversion(pid)
                 _deposit.publish_without_commit()
-            else:
+            else:    # Update last version
                 _pid = PIDVersioning(child=pid).last_child
                 _record = WekoDeposit.get_record(_pid.object_uuid)
                 _deposit = WekoDeposit(_record, _record.model)
+                _deposit["path"] = new_data.get("path")
                 _deposit.merge_data_to_record_without_version(
                     pid, keep_version=True, is_import=True
                 )
@@ -1358,6 +1375,19 @@ def register_item_metadata(item, root_path, owner, is_gakuninrdm=False):
                     item_id=_deposit.id, feedback_maillist=feedback_mail_list
                 )
                 _deposit.update_feedback_mail()
+
+            # Update draft version
+            _draft_pid = PersistentIdentifier.query.filter_by(
+                pid_type='recid',
+                pid_value="{}.0".format(item_id)
+            ).one_or_none()
+            if _draft_pid:
+                _draft_record = WekoDeposit.get_record(_draft_pid.object_uuid)
+                _draft_record["path"] = new_data.get("path")
+                _draft_deposit = WekoDeposit(_draft_record, _draft_record.model)
+                _draft_deposit.merge_data_to_record_without_version(
+                    pid, keep_version=True, is_import=True
+                )
 
 
 def update_publish_status(item_id, status):
@@ -1415,18 +1445,12 @@ def create_work_flow(item_type_id):
     it = ItemTypes.get_by_id(item_type_id)
 
     if flow_define and it:
-        try:
-            data = WorkFlow()
-            data.flows_id = uuid.uuid4()
-            data.flows_name = it.item_type_name.name
-            data.itemtype_id = it.id
-            data.flow_id = flow_define.id
-            db.session.add(data)
-            db.session.commit()
-        except Exception as ex:
-            db.session.rollback()
-            current_app.logger.error("create work flow error")
-            current_app.logger.error(ex)
+        data = WorkFlow()
+        data.flows_id = uuid.uuid4()
+        data.flows_name = it.item_type_name.name
+        data.itemtype_id = it.id
+        data.flow_id = flow_define.id
+        db.session.add(data)
 
 
 def create_flow_define():
@@ -1453,49 +1477,14 @@ def create_flow_define():
 
 def send_item_created_event_to_es(item, request_info):
     """Send item_created event to ES."""
-    def _prepare_stored_data(item, request_info):
-        """Prepare stored data."""
-        # TODO: consider to use "weko_deposit.signals.item_created."
-        timestamp = datetime.utcnow().replace(microsecond=0)
-        doc = {
-            "ip_address": request_info.get("remote_addr"),
-            "timestamp": timestamp.isoformat(),
-        }
-        doc = anonymize_user(doc)
-        doc = flag_restricted(doc)
-        doc = flag_robots(doc)
-        item_id = item.get("id") if 'id' in item else item.get("recid", -1)
-        data = {
-            "remote_addr": request_info.get("remote_addr"),
-            "country": doc.get("country"),
-            "record_name": item.get("item_title"),
-            "referrer": request_info.get("referrer"),
-            "is_robot": doc.get("is_robot"),
-            "cur_user_id": request_info.get("user_id"),
-            "is_restricted": doc.get("is_restricted"),
-            "unique_session_id": doc.get("unique_session_id"),
-            "hostname": request_info.get("hostname"),
-            "pid_value": item_id,
-            "unique_id": "item_create_{}".format(item_id),
-            "pid_type": "depid",
-            "timestamp": doc.get("timestamp"),
-            "visitor_id": doc.get("visitor_id"),
-        }
-        return data
-
-    def _push_item_to_elasticsearch(id, index, doc_type, data):
-        """Push item to elasticsearch in order to count report."""
-        indexer = RecordIndexer()
-        indexer.client.index(index=index, doc_type=doc_type, id=id, body=data)
-
-    timestamp = datetime.utcnow().replace(microsecond=0)
-    # Prepare stored data.
-    data = _prepare_stored_data(item, request_info)
-    doc_type = "stats-item-create"
-    index = "{}-events-{}".format(index_prefix, doc_type)
-    id = hash_id(timestamp, data)
-    # Save item to stats events.
-    _push_item_to_elasticsearch(id, index, doc_type, data)
+    with current_app.test_request_context():
+        item_created.send(
+            current_app._get_current_object(),
+            user_id=request_info.get("user_id"),
+            item_id=item.get("pid"),
+            item_title=item.get("item_title"),
+            admin_action=request_info.get("action")
+        )
 
 
 def import_items_to_system(item: dict, request_info=None, is_gakuninrdm=False):
@@ -1510,7 +1499,7 @@ def import_items_to_system(item: dict, request_info=None, is_gakuninrdm=False):
 
     """
 
-    owner = 1
+    owner = -1
     if request_info and 'user_id' in request_info:
         owner = request_info['user_id']
     if not request_info and request:
@@ -1518,7 +1507,8 @@ def import_items_to_system(item: dict, request_info=None, is_gakuninrdm=False):
             "remote_addr": request.remote_addr,
             "referrer": request.referrer,
             "hostname": request.host,
-            "user_id": owner
+            "user_id": owner,
+            "action": "IMPORT"
         }
 
     if not item:
@@ -1532,13 +1522,15 @@ def import_items_to_system(item: dict, request_info=None, is_gakuninrdm=False):
             root_path = item.get("root_path", "")
             if status == "new":
                 item_id = create_deposit(item.get("id"))
-                item["id"] = item_id
+                item["id"] = item_id["recid"]
+                item["pid"] = item_id.pid
             else:
                 handle_check_item_is_locked(item)
                 # cache ES data for rollback
                 pid = PersistentIdentifier.query.filter_by(
                     pid_type="recid", pid_value=item["id"]
                 ).first()
+                item["pid"] = pid
                 bef_metadata = WekoIndexer().get_metadata_by_item_id(pid.object_uuid)
                 bef_last_ver_metadata = WekoIndexer().get_metadata_by_item_id(
                     PIDVersioning(child=pid).last_child.object_uuid
@@ -1679,21 +1671,53 @@ def handle_item_title(list_record):
     :return
 
     """
+    from weko_items_ui.utils import get_options_and_order_list, get_hide_list_by_schema_form
+    from weko_records.utils import check_info_in_metadata
+        
     for item in list_record:
         error = None
-        item_type_mapping = Mapping.get_record(item["item_type_id"])
-        item_map = get_mapping(item_type_mapping, "jpcoar_mapping")
+        meta_option, item_type_mapping = get_options_and_order_list(item["item_type_id"])
+        hide_list = get_hide_list_by_schema_form(item["item_type_id"])
+        item_map = get_mapping(item["item_type_id"], "jpcoar_mapping")
         # current_app.logger.debug("item_type_mapping: {}".format(item_type_mapping))
         # current_app.logger.debug("item_map: {}".format(item_map))
         title_data, _title_key = get_data_by_property(
             item["metadata"], item_map, "title.@value"
         )
-        if not title_data:
-            error = _("Title is required item.")
-        else:
-            item["item_title"] = title_data[0]
+        title_lang_data, _title_lang_key = get_data_by_property(
+            item["metadata"], item_map, "title.@attributes.xml:lang"
+        )
+        title_val = None
+        lang_key_list = _title_lang_key.split(",")
+        val_key_list = _title_key.split(",")
+        for val_key in val_key_list:
+            val_parent_key = val_key.split(".")[0]
+            val_sub_key = val_key.split(".")[-1]
+            for lang_key in lang_key_list:
+                if val_parent_key == lang_key.split(".")[0]:
+                    prop_hidden = meta_option.get(val_parent_key, {}).get('option', {}).get('hidden', False)
+                    for h in hide_list:
+                        if h.startswith(val_parent_key) and h.endswith(val_sub_key):
+                            prop_hidden = True
+                    if (
+                        title_lang_data is not None
+                        and title_data is not None
+                        and title_lang_data is not None
+                        and len(title_data) > 0
+                        and len(title_lang_data) > 0
+                        and not prop_hidden
+                    ):
+                        title_val = check_info_in_metadata(
+                            lang_key, val_key, title_lang_data[0], item["metadata"]
+                        )
+                        item["item_title"] = title_val
+                if title_val:
+                    break
+            if title_val:
+                break
 
-        if error:
+        if not title_val:
+            error = _("Title is required item.")
             item["errors"] = item["errors"] + [error] if item.get("errors") else [error]
 
 
@@ -1747,54 +1771,56 @@ def handle_check_and_prepare_index_tree(list_record, all_index_permission, can_e
         """
         temp_res = []
         index_info = None
-        try:
-            index_info = Indexes.get_path_list([index_id])
-        except Exception:
-            db.session.rollback()
-            current_app.logger.warning("Specified IndexID is invalid!")
+        index_info = Indexes.get_path_list([index_id])
 
+        msg_not_exist = _("The specified {} does not exist in system.")
         if index_info and len(index_info) == 1:
-            if index_name_path and index_name_path not in [
-                index_info[0].name.replace(
-                    '-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT']),
-                index_info[0].name_en.replace(
-                    '-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT']),
-            ]:
+            check_list = []
+            check_list.append(index_info[0].name_en.replace(
+                '-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT']))
+            if index_info[0].name:
+                check_list.append(index_info[0].name.replace(
+                    '-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT']))
+            if index_name_path and index_name_path not in check_list:
                 warnings.append(
                     _("Specified {} does not match with existing index.").format(
                         "POS_INDEX"
                     )
                 )
             temp_res = [index_info[0].cid]
-        elif index_name_path:
+        elif index_name_path:          # has pos_index info
             index_path_list = index_name_path.split(
                 current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT'])
             index_all_name = Indexes.get_index_by_all_name(index_path_list[-1])
             index_infos = Indexes.get_path_list([i.id for i in index_all_name])
-            msg_not_exist = _("The specified {} does not exist in system.")
-            if index_infos:
+            if index_infos:      # index exists by index name
                 for info in index_infos:
                     index_info = None
-                    if index_name_path == \
-                            info.name.replace(
-                                '-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT']):
+                    if (index_name_path == \
+                        info.name_en.replace('-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT'])) or \
+                        (info.name and index_name_path == \
+                         info.name.replace('-/-', current_app.config['WEKO_ITEMS_UI_INDEX_PATH_SPLIT'])):
                         index_info = info
                     
-                    if not index_info:
+                    if not index_info:      # index does not exist by index path
                         if index_id:
                             errors.append(msg_not_exist.format("IndexID, POS_INDEX"))
                         else:
                             errors.append(msg_not_exist.format("POS_INDEX"))
-                    else:
+                    else:      # index exists by index path
                         if index_id:
                             errors.append(msg_not_exist.format("IndexID"))
                         else:
                             temp_res.append(index_info.cid)
-            else:
+                if temp_res:
+                    errors.clear()
+            else:      # index does not exist by index name
                 if index_id:
                     errors.append(msg_not_exist.format("IndexID, POS_INDEX"))
                 else:
                     errors.append(msg_not_exist.format("POS_INDEX"))
+        else:         # index does not exist by index id and index path
+            errors.append(msg_not_exist.format("IndexID"))
         result = []
         if temp_res and not all_index_permission:
             msg_can_not_edit = _("Your role cannot register items in this index.")
@@ -1821,7 +1847,7 @@ def handle_check_and_prepare_index_tree(list_record, all_index_permission, can_e
             errors = [_("Both of IndexID and POS_INDEX are not being set.")]
         else:
             if not index_ids:
-                index_ids = ["" for _ in range(len(pos_index))]
+                index_ids = [None for _ in range(len(pos_index))]
             for x, index_id in enumerate(index_ids):
                 index_name_path = ""
                 if pos_index and x <= len(pos_index) - 1:
@@ -2840,9 +2866,8 @@ def handle_fill_system_item(list_record):
         warnings = item.get('warnings') or []
         if item_type_id != item["item_type_id"]:
             item_type_id = item["item_type_id"]
-            record = Mapping.get_record(item_type_id)
             # current_app.logger.debug("record_hoge: {}".format(record))
-            item_map = get_mapping(record, "jpcoar_mapping")
+            item_map = get_mapping(item_type_id, "jpcoar_mapping")
 
         # Resource Type
         resourcetype_key = item_map.get("type.@value")
@@ -2890,6 +2915,7 @@ def handle_fill_system_item(list_record):
         item_doi = item.get("doi","")
         item_doi_prefix = ""
         item_doi_suffix = ""
+        item_cnri = item.get("cnri", "")
         
         if item_doi and "/" in item_doi:
             item_doi_prefix, item_doi_suffix = item_doi.split("/")
@@ -3025,10 +3051,11 @@ def handle_fill_system_item(list_record):
                 warnings.append(_('The specified DOI RA is wrong and fixed with the correct DOI RA of the registered DOI.'))
             
             if is_change_identifier:
-                if item_doi is "":
-                    errors.append(_('Please specify DOI prefix/suffix.'))
-                elif item_doi_suffix is "":
-                    errors.append(_('Please specify DOI suffix.'))
+                if not (current_app.config["WEKO_HANDLE_ALLOW_REGISTER_CNRI"] and item_cnri):
+                    if item_doi is "":
+                        errors.append(_('Please specify DOI prefix/suffix.'))
+                    elif item_doi_suffix is "":
+                        errors.append(_('Please specify DOI suffix.'))
             else:
                 if item_doi_suffix and existed_doi is False:
                     errors.append(_('Do not specify DOI suffix.'))
@@ -3249,7 +3276,7 @@ def export_all(root_url, user_id, data):
         name=_run_msg_config,
         user_id=user_id
     )
-    _timezone = current_app.config["STATS_WEKO_DEFAULT_TIMEZONE"]
+    _timezone = str(current_app.config["STATS_WEKO_DEFAULT_TIMEZONE"]())
     _file_format = current_app.config.get('WEKO_ADMIN_OUTPUT_FORMAT', 'tsv').lower()
 
     def _itemtype_name(name):
@@ -3275,6 +3302,7 @@ def export_all(root_url, user_id, data):
             item_datas["recids"],
             item_datas["data"],
             permissions,
+            export_path
         )
         keys, labels, is_systems, options = headers
         item_datas["recids"].sort()
@@ -3387,7 +3415,7 @@ def export_all(root_url, user_id, data):
 
                 record_ids = [(recid.pid_value, recid.object_uuid) 
                     for recid in recids if 'publish_status' in recid.json 
-                    and recid.json['publish_status'] in ['0', '1']]
+                    and recid.json['publish_status'] in [PublishStatus.PUBLIC.value, PublishStatus.PRIVATE.value]]
                 for recid, uuid in record_ids:
                     if counter % WEKO_SEARCH_UI_BULK_EXPORT_LIMIT == 0 and item_datas:
                         # Create export info file
@@ -3532,19 +3560,15 @@ def delete_exported(uri, cache_key):
     """Delete File instance after time in file config."""
     from simplekv.memory.redisstore import RedisStore
 
-    try:
-        with db.session.begin_nested():
-            file_instance = FileInstance.get_by_uri(uri)
-            file_instance.delete()
-        redis_connection = RedisConnection()
-        datastore = redis_connection.connection(db=current_app.config['CACHE_REDIS_DB'], kv = True)
-        if datastore.redis.exists(cache_key):
-            datastore.delete(cache_key)
-        db.session.commit()
-    except Exception as ex:
-        current_app.logger.error(ex)
+    with db.session.begin_nested():
+        file_instance = FileInstance.get_by_uri(uri)
+        file_instance.delete()
+    redis_connection = RedisConnection()
+    datastore = redis_connection.connection(db=current_app.config['CACHE_REDIS_DB'], kv = True)
+    if datastore.redis.exists(cache_key):
+        datastore.delete(cache_key)
 
-
+from weko_search_ui.tasks import delete_task_id_cache
 def cancel_export_all():
     """Cancel Process Share_task Export ALL with revoke.
 
@@ -3555,13 +3579,20 @@ def cancel_export_all():
         name=WEKO_SEARCH_UI_BULK_EXPORT_TASK,
         user_id=current_user.get_id()
     )
+    _expired_time=current_app.config["WEKO_SEARCH_UI_BULK_EXPORT_TASKID_EXPIRED_TIME"]
     try:
         task_id = get_redis_cache(cache_key)
-        task_status = get_export_status()
+        export_status, _, _, _, _ = get_export_status()
 
-        if task_status:
+        if export_status:
             revoke(task_id, terminate=True)
-
+            delete_task_id_cache.apply_async(
+                args=(
+                    task_id,
+                    cache_key
+                ),
+                countdown=int(_expired_time) * 60
+            )
         return True
     except Exception as ex:
         current_app.logger.error(ex)
@@ -3594,6 +3625,8 @@ def get_export_status():
     download_uri = None
     message = None
     run_message = ""
+    status = ""
+    
     try:
         task_id = get_redis_cache(cache_key)
         download_uri = get_redis_cache(cache_uri)
@@ -3602,11 +3635,12 @@ def get_export_status():
         if task_id:
             task = AsyncResult(task_id)
             status_cond = task.successful() or task.failed() or task.state == "REVOKED"
+            status = task.state
             export_status = True if not status_cond else False
     except Exception as ex:
         current_app.logger.error(ex)
         export_status = False
-    return export_status, download_uri, message, run_message
+    return export_status, download_uri, message, run_message, status
 
 
 def handle_check_item_is_locked(item):
@@ -3875,20 +3909,21 @@ def get_data_by_property(item_metadata, item_map, mapping_key):
     :param mapping_key: Mapping key.
     :return: Property key and values.
     """
-    key = item_map.get(mapping_key)
+    key_list = item_map.get(mapping_key)
     data = []
-    if not key:
+    if not key_list:
         current_app.logger.error(str(mapping_key) + " jpcoar:mapping " "is not correct")
         return None, None
-    attribute = item_metadata.get(key.split(".")[0])
-    if not attribute:
-        return None, key
-    else:
-        data_result = get_sub_item_value(attribute, key.split(".")[-1])
-        if data_result:
-            for value in data_result:
-                data.append(value)
-    return data, key
+    for key in key_list.split(","):
+        attribute = item_metadata.get(key.split(".")[0])
+        if not attribute:
+            return None, key_list
+        else:
+            data_result = get_sub_item_value(attribute, key.split(".")[-1])
+            if data_result:
+                for value in data_result:
+                    data.append(value)
+    return data, key_list
 
 
 def get_filenames_from_metadata(metadata):
@@ -3952,3 +3987,15 @@ def handle_check_filename_consistence(file_paths, meta_filenames):
             errors.append(msg.format("file_path[{}]".format(idx), meta_filename["id"]))
 
     return errors
+
+def combine_aggs(data, target="path"):
+    aggregations = data.get("aggregations")
+    if aggregations:
+        keys = list(aggregations.keys())
+        new_agg = {"doc_count_error_upper_bound": "0","sum_order_doc_count":"0","buckets":[]}
+        for key in keys:
+            if target in key:
+                bucket = aggregations.pop(key)["buckets"]
+                new_agg["buckets"].extend(bucket)
+        data["aggregations"][target] = new_agg
+    return data

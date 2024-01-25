@@ -201,15 +201,17 @@ def subitem_recs(schema, keys, value, metadata):
     elif schema.get('properties', {}).get(item_key):
         subitems = {}
         if len(keys) > 1:
-            subitems = subitem_recs(schema[item_key], keys[1:],
+            subitems = subitem_recs(schema['properties'][item_key], keys[1:],
                                     value, metadata)
         else:
             if '.' in value:
                 _v = value.split('.')
                 if len(_v) > 2 or not metadata.get(_v[0]):
-                    return None
-
-                if isinstance(metadata.get(_v[0]), str) and _v[1] == TEXT:
+                    if len(_v) > 2:
+                        subitems[item_key] = metadata.get(_v[0], {}).get(_v[1], {}).get(_v[2], {})
+                    else:
+                        return None
+                elif isinstance(metadata.get(_v[0]), str) and _v[1] == TEXT:
                     subitems[item_key] = metadata.get(_v[0])
                 elif isinstance(metadata.get(_v[0]), list):
                     subitems[item_key] = metadata.get(_v[0])[0].get(_v[1], "")
@@ -275,13 +277,12 @@ def parsing_metadata(mappin, props, patterns, metadata, res):
         mapping.sort()
 
     item_key = mapping[0].split('.')[0]
-
+    
     if item_key and props.get(item_key):
         if props[item_key].get('items'):
             item_schema = props[item_key]['items']['properties']
         else:
             item_schema = props[item_key]['properties']
-
         # current_app.logger.debug('{0} {1} {2}: {3}'.format(
         #     __file__, 'parsing_metadata()', 'item_schema', item_schema))
         ret = []
@@ -289,50 +290,52 @@ def parsing_metadata(mappin, props, patterns, metadata, res):
             items = {}
             for elem, value in patterns:
                 mapping = mappin.get(elem)
-                if not mappin.get(elem) or not value:
-                    continue
-                else:
+                #if not mappin.get(elem) or not value:
+                #    continue
+                #else:
+                if mappin.get(elem) and value:
                     mapping.sort()
 
-                subitems = None
-                if ',' in mapping[0]:
-                    subitems = mapping[0].split(',')[0].split('.')[1:]
-                else:
-                    subitems = mapping[0].split('.')[1:]
+                    subitems = None
+                    if ',' in mapping[0]:
+                        subitems = mapping[0].split(',')[0].split('.')[1:]
+                    else:
+                        subitems = mapping[0].split('.')[1:]
+                    
+                    if subitems:
+                        if subitems[0] in item_schema:
+                            submetadata = subitem_recs(
+                                item_schema[subitems[0]],
+                                subitems[1:],
+                                value,
+                                it
+                            )
 
-                if subitems:
-                    if subitems[0] in item_schema:
-                        submetadata = subitem_recs(
-                            item_schema[subitems[0]],
-                            subitems[1:],
-                            value,
-                            it
-                        )
+                            if submetadata:
+                                if isinstance(submetadata, list):
+                                    if items.get(subitems[0]):
+                                        if len(items[subitems[0]]) != len(submetadata):
+                                            items[subitems[0]].extend(submetadata)
+                                            continue
 
-                        if submetadata:
-                            if isinstance(submetadata, list):
-                                if items.get(subitems[0]):
-                                    if len(items[subitems[0]]) != len(submetadata):
-                                        items[subitems[0]].extend(submetadata)
-                                        continue
-
-                                    for idx, meta in enumerate(submetadata):
-                                        if isinstance(meta, dict):
-                                            items[subitems[0]][idx].update(
-                                                meta)
-                                        else:
-                                            items[subitems[0]].extend(meta)
+                                        for idx, meta in enumerate(submetadata):
+                                            if isinstance(meta, dict):
+                                                items[subitems[0]][idx].update(
+                                                    meta)
+                                            else:
+                                                items[subitems[0]].extend(meta)
+                                    else:
+                                        items[subitems[0]] = submetadata
+                                elif isinstance(submetadata, dict):
+                                    submetadata_key = None
+                                    if len(list(submetadata.keys())) > 0:
+                                        submetadata_key = list(submetadata.keys())[0]
+                                    if items.get(subitems[0]):
+                                        items[subitems[0]].update(submetadata)
+                                    else:
+                                        items[subitems[0]] = submetadata
                                 else:
                                     items[subitems[0]] = submetadata
-                            elif isinstance(submetadata, dict):
-                                if items.get(subitems[0]):
-                                    items[subitems[0]].update(submetadata)
-                                else:
-                                    items[subitems[0]] = submetadata
-                            else:
-                                items[subitems[0]] = submetadata
-                else:
-                    continue
             if items:
                 ret.append(items)
 
@@ -346,7 +349,9 @@ def parsing_metadata(mappin, props, patterns, metadata, res):
         #     __file__, 'parsing_metadata()', 'item_key', item_key))
         # current_app.logger.debug('{0} {1} {2}: {3}'.format(
         #     __file__, 'parsing_metadata()', 'ret', ret))
+
         return item_key, ret
+        
     else:
         return None, None
 
@@ -401,26 +406,30 @@ def add_creator_jpcoar(schema, mapping, res, metadata):
             'jpcoar:creatorName.#text'),
         ('creator.creatorName.@attributes.xml:lang',
             'jpcoar:creatorName.@xml:lang'),
+        ('creator.creatorName.@attributes.nameType',
+            'jpcoar:creatorName.@nameType'),
         ('creator.creatorAlternative.@value',
             'jpcoar:creatorAlternative.#text'),
         ('creator.creatorAlternative.@attributes.xml:lang',
             'jpcoar:creatorAlternative.@xml:lang'),
+        ('creator.@attributes.creatorType',
+            'jpcoar:creator.@creatorType'),
         # ('creator.nameIdentifier.@value',
         #     'jpcoar:nameIdentifier.#text'),
         # ('creator.nameIdentifier.@attributes.nameIdentifierURI',
         #     'jpcoar:nameIdentifier.@nameIdentifierURI'),
         # ('creator.nameIdentifier.@attributes.nameIdentifierScheme',
         #     'jpcoar:nameIdentifier.@nameIdentifierScheme'),
-        # ('creator.affiliation.nameIdentifier.@value',
-        #     TEXT),
-        # ('creator.affiliation.nameIdentifier.@attributes.nameIdentifierURI',
-        #     None),
-        # ('creator.affiliation.nameIdentifier.@attributes.nameIdentifierScheme',
-        #     None),
-        # ('creator.affiliation.affiliationName.@value',
-        #     TEXT),
-        # ('creator.affiliation.affiliationName.@attributes.xml:lang',
-        #     LANG),
+        ('creator.affiliation.nameIdentifier.@value',
+            'jpcoar:affiliation.jpcoar:nameIdentifier.#text'),
+        ('creator.affiliation.nameIdentifier.@attributes.nameIdentifierURI',
+            'jpcoar:affiliation.jpcoar:nameIdentifier.@nameIdentifierURI'),
+        ('creator.affiliation.nameIdentifier.@attributes.nameIdentifierScheme',
+            'jpcoar:affiliation.jpcoar:nameIdentifier.@nameIdentifierScheme'),
+        ('creator.affiliation.affiliationName.@value',
+            'jpcoar:affiliation.jpcoar:affiliationName.#text'),
+        ('creator.affiliation.affiliationName.@attributes.xml:lang',
+            'jpcoar:affiliation.jpcoar:affiliationName.@xml:lang'),
     ]
 
     parsing_metadata(mapping, schema, patterns, metadata, res)
@@ -438,12 +447,12 @@ def add_contributor_jpcoar(schema, mapping, res, metadata):
     patterns = [
         ('contributor.@attributes.contributorType',
          '@contributorType'),
-        # ('contributor.nameIdentifier.@value',
-        #     'jpcoar:nameIdentifier.#text'),
-        # ('contributor.nameIdentifier.@attributes.nameIdentifierURI',
-        #     'jpcoar:nameIdentifier.@nameIdentifierURI'),
-        # ('contributor.nameIdentifier.@attributes.nameIdentifierScheme',
-        #     'jpcoar:nameIdentifier.@nameIdentifierScheme'),
+        ('contributor.nameIdentifier.@value',
+            'jpcoar:nameIdentifier.#text'),
+        ('contributor.nameIdentifier.@attributes.nameIdentifierURI',
+            'jpcoar:nameIdentifier.@nameIdentifierURI'),
+        ('contributor.nameIdentifier.@attributes.nameIdentifierScheme',
+            'jpcoar:nameIdentifier.@nameIdentifierScheme'),
         ('contributor.givenName.@value',
             'jpcoar:givenName#text'),
         ('contributor.givenName.@attributes.xml:lang',
@@ -456,19 +465,54 @@ def add_contributor_jpcoar(schema, mapping, res, metadata):
             'jpcoar:contributorName.#text'),
         ('contributor.contributorName.@attributes.xml:lang',
             'jpcoar:contributorName.@xml:lang'),
+        ('contributor.contributorName.@attributes.nameType',
+            'jpcoar:contributorName.@nameType'),
         ('contributor.contributorAlternative.@value',
             'jpcoar:contributorAlternative.#text'),
         ('contributor.contributorAlternative.@attributes.xml:lang',
             'jpcoar:contributorAlternative.@xml:lang'),
-        # ('contributor.affiliation.nameIdentifier.@value',
-        #     None),
-        # ('contributor.affiliation.nameIdentifier.@attributes.nameIdentifierURI',
-        #     None),
-        # ('contributor.affiliation.nameIdentifier.@attributes.nameIdentifierScheme',
-        #     None),
-        # ('contributor.affiliation.affiliationName.@value', None),
-        # ('contributor.affiliation.affiliationName.@attributes.xml:lang',
-        #     None),
+        ('contributor.affiliation.nameIdentifier.@value',
+            'jpcoar:affiliation.jpcoar:nameIdentifier.#text'),
+        ('contributor.affiliation.nameIdentifier.@attributes.nameIdentifierURI',
+            'jpcoar:affiliation.jpcoar:nameIdentifier.@nameIdentifierURI'),
+        ('contributor.affiliation.nameIdentifier.@attributes.nameIdentifierScheme',
+            'jpcoar:affiliation.jpcoar:nameIdentifier.@nameIdentifierScheme'),
+        ('contributor.affiliation.affiliationName.@value', 
+            'jpcoar:affiliation.jpcoar:affiliationName.#text'),
+        ('contributor.affiliation.affiliationName.@attributes.xml:lang',
+            'jpcoar:affiliation.jpcoar:affiliationName.@xml:lang'),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_publisher_jpcoar(schema, mapping, res, metadata):
+    """Add publisher."""
+    patterns = [
+        (
+            'publisher_jpcoar.publisherName.@value',
+            'jpcoar:publisherName.#text'
+        ),
+        (
+            'publisher_jpcoar.publisherName.@attributes.xml:lang',
+            'jpcoar:publisherName.@xml:lang'
+        ),
+        (
+            'publisher_jpcoar.publisherDescription.@value',
+            'jpcoar:publisherDescription.#text'
+        ),
+        (
+            'publisher_jpcoar.publisherDescription.@attributes.xml:lang',
+            'jpcoar:publisherDescription.@xml:lang'
+        ),
+        (
+            'publisher_jpcoar.location.@value',
+            'dcndl:location.#text'
+        ),
+        (
+            'publisher_jpcoar.publicationPlace.@value',
+            'dcndl:publicationPlace.#text'
+        ),
     ]
 
     parsing_metadata(mapping, schema, patterns, metadata, res)
@@ -521,10 +565,22 @@ def add_right(schema, mapping, res, metadata):
 def add_subject(schema, mapping, res, metadata):
     """Add subject."""
     patterns = [
-        ('subject.@value', TEXT),
-        ('subject.@attributes.xml:lang', LANG),
-        ('subject.@attributes.subjectURI', '@subjectURI'),
-        ('subject.@attributes.subjectScheme', '@subjectScheme'),
+        (
+            'subject.@value',
+             TEXT
+        ),
+        (
+            'subject.@attributes.xml:lang',
+            LANG
+        ),
+        (
+            'subject.@attributes.subjectURI',
+            '@subjectURI'
+        ),
+        (
+            'subject.@attributes.subjectScheme',
+            '@subjectScheme'
+        ),
     ]
 
     parsing_metadata(mapping, schema, patterns, metadata, res)
@@ -565,6 +621,230 @@ def add_date(schema, mapping, res, metadata):
     patterns = [
         ('date.@value', TEXT),
         ('date.@attributes.dateType', '@dateType'),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_date_dcterms(schema, mapping, res, metadata):
+    patterns = [
+        ('date_dcterms.@value', '#text'),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_edition(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'edition.@value',
+            '#text'
+        ),
+        (
+            'edition.@attributes.xml:lang',
+            '@xml:lang'
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_volumeTitle(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'volumeTitle.@value',
+            '#text'
+        ),
+        (
+            'volumeTitle.@attributes.xml:lang',
+            '@xml:lang'
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_originalLanguage(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'originalLanguage.@value',
+            '#text'
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_extent(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'extent.@value',
+            '#text'
+        ),
+        (
+            'extent.@attributes.xml:lang',
+            '@xml:lang'
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_format(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'format.@value',
+            '#text'
+        ),
+        (
+            'format.@attributes.xml:lang',
+            '@xml:lang'
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_holdingAgent(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'holdingAgent.holdingAgentName.@value',
+            'jpcoar:holdingAgentName.#text'
+        ),
+        (
+            'holdingAgent.holdingAgentName.@attributes.xml:lang',
+            'jpcoar:holdingAgentName.@xml:lang'
+        ),
+        (
+            'holdingAgent.holdingAgentNameIdentifier.@value',
+            'jpcoar:holdingAgentNameIdentifier.#text',
+        ),
+        (
+            'holdingAgent.holdingAgentNameIdentifier.@attributes.nameIdentifierScheme',
+            'jpcoar:holdingAgentNameIdentifier.@nameIdentifierScheme',
+        ),
+        (
+            'holdingAgent.holdingAgentNameIdentifier.@attributes.nameIdentifierURI',
+            'jpcoar:holdingAgentNameIdentifier.@nameIdentifierURI',
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_datasetSeries(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'datasetSeries.@value',
+            '#text',
+        ),
+    ]
+
+    parsing_metadata(mapping, schema, patterns, metadata, res)
+
+
+def add_catalog(schema, mapping, res, metadata):
+    patterns = [
+        (
+            'catalog.contributor.@attributes.contributorType',
+            'jpcoar:contributor.@contributorType',
+        ),
+        (
+            'catalog.contributor.contributorName.@value',
+            'jpcoar:contributor.jpcoar:contributorName.#text',
+        ),
+        (
+            'catalog.contributor.contributorName.@attributes.xml:lang',
+            'jpcoar:contributor.jpcoar:contributorName.@xml:lang',
+        ),
+        (
+            'catalog.identifier.@value',
+            'jpcoar:identifier.#text'
+        ),
+        (
+            'catalog.identifier.@attributes.identifierType',
+            'jpcoar:identifier.@identifierType'
+        ),
+        (
+            'catalog.title.@value',
+            'dc:title.#text'
+        ),
+        (
+            'catalog.title.@attributes.xml:lang',
+            'dc:title.@xml:lang'
+        ),
+        (
+            'catalog.description.@value',
+            'datacite:description.#text'
+        ),
+        (
+            'catalog.description.@attributes.xml:lang',
+            'datacite:description.@xml:lang'
+        ),
+        (
+            'catalog.description.@attributes.descriptionType',
+            'datacite:description.@descriptionType'
+        ),
+        (
+            'catalog.subject.@value',
+            'jpcoar:subject.#text'
+        ),
+        (
+            'catalog.subject.@attributes.xml:lang',
+            'jpcoar:subject.@xml:lang'
+        ),
+        (
+            'catalog.subject.@attributes.subjectURI',
+            'jpcoar:subject.@subjectURI'
+        ),
+        (
+            'catalog.subject.@attributes.subjectScheme',
+            'jpcoar:subject.@subjectScheme'
+        ),
+        (
+            'catalog.license.@value',
+            'jpcoar:license.#text'
+        ),
+        (
+            'catalog.license.@attributes.xml:lang',
+            'jpcoar:license.@xml:lang'
+        ),
+        (
+            'catalog.license.@attributes.licenseType',
+            'jpcoar:license.@licenseType'
+        ),
+        (
+            'catalog.license.@attributes.rdf:resource',
+            'jpcoar:license.@rdf:resource'
+        ),
+        (
+            'catalog.rights.@value',
+            'dc:rights.#text'
+        ),
+        (
+            'catalog.rights.@attributes.xml:lang',
+            'dc:rights.@xml:lang'
+        ),
+        (
+            'catalog.rights.@attributes.rdf:resource',
+            'dc:rights.@rdf:resource'
+        ),
+        (
+            'catalog.accessRights.@value',
+            'dcterms:accessRights.#text'
+        ),
+        (
+            'catalog.accessRights.@attributes.rdf:resource',
+            'dcterms:accessRights.@rdf:resource'
+        ),
+        (
+            'catalog.file.URI.@value',
+            'jpcoar:file.jpcoar:URI.#text'
+        ),
+        (
+            'catalog.file.URI.@attributes.objectType',
+            'jpcoar:file.jpcoar:URI.@objectType'
+        ),
     ]
 
     parsing_metadata(mapping, schema, patterns, metadata, res)
@@ -789,22 +1069,66 @@ def add_funding_reference(schema, mapping, res, metadata):
     """Add the grant information if you have received \
     financial support (funding) to create the resource."""
     patterns = [
-        ('fundingReference.funderName.@value',
-            'jpcoar:funderName.#text'),
-        ('fundingReference.funderName.@attributes.xml:lang',
-            'jpcoar:funderName.@xml:lang'),
-        ('fundingReference.funderIdentifier.@value',
-            'datacite:funderIdentifier.#text'),
-        ('fundingReference.funderIdentifier.@attributes.funderIdentifierType',
-            'datacite:funderIdentifier.@funderIdentifierType'),
-        ('fundingReference.awardTitle.@value',
-            'jpcoar:awardTitle.#text'),
-        ('fundingReference.awardTitle.@attributes.xml:lang',
-            'jpcoar:awardTitle.@xml:lang'),
-        ('fundingReference.awardNumber.@value',
-            'datacite:awardNumber.#text'),
-        ('fundingReference.awardNumber.@attributes.awardURI',
-            'datacite:awardNumber.@awardURI'),
+        (
+            'fundingReference.funderName.@value',
+            'jpcoar:funderName.#text'
+        ),
+        (
+            'fundingReference.funderName.@attributes.xml:lang',
+            'jpcoar:funderName.@xml:lang'
+        ),
+        (
+            'fundingReference.funderIdentifier.@value',
+            'jpcoar:funderIdentifier.#text'
+        ),
+        (
+            'fundingReference.funderIdentifier.@attributes.funderIdentifierType',
+            'jpcoar:funderIdentifier.@funderIdentifierType'
+        ),
+        (
+            'fundingReference.funderIdentifier.@attributes.funderIdentifierTypeURI',
+            'jpcoar:funderIdentifier.@funderIdentifierTypeURI'
+        ),
+        (
+            'fundingReference.fundingStreamIdentifier.@value',
+            'jpcoar:fundingStreamIdentifier.#text'
+        ),
+        (
+            'fundingReference.fundingStreamIdentifier.@attributes.fundingStreamIdentifierType',
+            'jpcoar:fundingStreamIdentifier.@fundingStreamIdentifierType'
+        ),
+        (
+            'fundingReference.fundingStreamIdentifier.@attributes.fundingStreamIdentifierTypeURI',
+            'jpcoar:fundingStreamIdentifier.@fundingStreamIdentifierTypeURI',
+        ),
+        (
+            'fundingReference.fundingStream.@value',
+            'jpcoar:fundingStream.#text'
+        ),
+        (
+            'fundingReference.fundingStream.@attributes.xml:lang',
+            'jpcoar:fundingStream.@xml:lang'
+        ),
+        (
+            'fundingReference.awardNumber.@value',
+            'jpcoar:awardNumber.#text'
+        ),
+        (
+            'fundingReference.awardNumber.@attributes.awardURI',
+            'jpcoar:awardNumber.@awardURI'
+        ),
+        (
+            'fundingReference.awardNumber.@attributes.awardNumberType',
+            'jpcoar:awardNumber.@awardNumberType'
+        ),
+        (
+            'fundingReference.awardTitle.@value',
+            'jpcoar:awardTitle.#text'
+        ),
+        (
+            'fundingReference.awardTitle.@attributes.xml:lang',
+            'jpcoar:awardTitle.@xml:lang'
+        ),
     ]
 
     parsing_metadata(mapping, schema, patterns, metadata, res)
@@ -923,7 +1247,7 @@ def add_data_by_key(schema, res, resource_list, key):
         res[root_key].append(item)
 
 
-def add_source_dc(schema, res, source_list):
+def add_source_dc(schema, mapping, res, metadata):
     """Add source."""
     patterns = [
         ('source.@value', TEXT),
@@ -933,7 +1257,7 @@ def add_source_dc(schema, res, source_list):
     parsing_metadata(mapping, schema, patterns, metadata, res)
 
 
-def add_coverage_dc(schema, res, coverage_list):
+def add_coverage_dc(schema, mapping, res, metadata):
     """Add coverage."""
     patterns = [
         ('coverage.@value', TEXT),
@@ -973,7 +1297,7 @@ def add_relation_dc(schema, mapping, res, metadata):
     parsing_metadata(mapping, schema, patterns, metadata, res)
 
 
-def add_rights_dc(schema, res, rights, lang='', rights_resource=''):
+def add_rights_dc(schema, mapping, res, metadata):
     """Add rights."""
     patterns = [
         ('rights.@value', TEXT),
@@ -1226,8 +1550,7 @@ def map_sets(sets, encoding='utf-8'):
         if m:
             spec = m.group(1)
             name = m.group(2)
-            if spec and name:
-                res[spec] = name
+            res[spec] = name
     return res
 
 
@@ -1429,9 +1752,30 @@ class JPCOARMapper(BaseMapper):
                 partial(add_file, *args),
             'jpcoar:identifier':
                 partial(add_identifier, *args),
+            'jpcoar:publisher':
+                partial(add_publisher_jpcoar, *args),
+            'dcterms:date':
+                partial(add_date_dcterms, *args),
+            'dcndl:edition':
+                partial(add_edition, *args),
+            'dcndl:volumeTitle':
+                partial(add_volumeTitle, *args),
+            'dcndl:originalLanguage':
+                partial(add_originalLanguage, *args),
+            'dcterms:extent':
+                partial(add_extent, *args),
+            'jpcoar:format':
+                partial(add_format, *args),
+            'jpcoar:holdingAgent':
+                partial(add_holdingAgent, *args),
+            'jpcoar:datasetSeries':
+                partial(add_datasetSeries, *args),
+            'jpcoar:catalog':
+                partial(add_catalog, *args),
         }
 
         tags = self.json['record']['metadata']['jpcoar:jpcoar']
+        
         for t in tags:
             if t in add_funcs:
                 if not isinstance(tags[t], list):
@@ -1455,9 +1799,7 @@ class DDIMapper(BaseMapper):
         """Process parsing DDI data."""
         def get_mapping_ddi():
             """Get DDI mapping."""
-            item_type_id = self.itemtype.id
-            type_mapping = Mapping.get_record(item_type_id)
-            item_map = get_mapping(type_mapping, "ddi_mapping")
+            item_map = get_mapping(self.itemtype.id, "ddi_mapping")
             lst_keys_x = list(item_map.keys())
             for i in lst_keys_x:
                 lst_keys.append(i)
@@ -1481,19 +1823,16 @@ class DDIMapper(BaseMapper):
                             current_temp[i_r] = {}
                     if isinstance(current_temp[i_r], dict):
                         current_temp[i_r].update(val)
-                    elif isinstance(current_temp[i_r], list):
+                    else:# isinstance(current_temp[i_r], list):
                         if current_temp[i_r]:
                             current_temp[i_r][0].update(val)
                         else:
                             current_temp[i_r].append(val)
-                    break
+                    # break
                 elif i_r in current_temp:
-                    current_temp = current_temp[i_r]
-                    target = target[i_r]
-                    if isinstance(current_temp, list):
-                        current_temp = current_temp[0]
-                        target = target[0]
-                elif i_r not in current_temp:
+                    current_temp = current_temp[i_r][0]
+                    target = target[i_r][0]
+                else:# i_r not in current_temp:
                     current_temp[i_r] = [] if '[]' in i else {}
                     if isinstance(current_temp[i_r], list):
                         current_temp[i_r] = target[i_r]
@@ -1548,7 +1887,7 @@ class DDIMapper(BaseMapper):
             def get_same_key_from_form(sub_key):
                 """Get the same key with sub_key in form."""
                 for item_sub_key_form in item_sub_keys_form:
-                    if item_sub_key_form.replace("[]", "") == sub_key:
+                    if item_sub_key_form.replace("[]", "") in sub_key.split(','):
                         sub_key = item_sub_key_form
                         break
                 return sub_key
@@ -1565,7 +1904,7 @@ class DDIMapper(BaseMapper):
                     else:
                         full_key_val_obj = {
                             current_key: full_key_val_obj}
-                if {"full": full_key_val_obj, "key": sub_keys_clone, "val": {last_key: parse_data}} not in temp_list:
+                if {"full": full_key_val_obj, "key": sub_keys_clone, "val": {last_key: parse_data}} not in temp_lst:
                     temp_lst.append(
                         {"full": full_key_val_obj,
                          "key": sub_keys_clone,
@@ -1623,8 +1962,8 @@ class DDIMapper(BaseMapper):
                             else:
                                 if temp_data not in list_result:
                                     list_result.append(temp_data)
-                        elif root_key.replace("[]", "") in result_dict and isinstance(
-                                result_dict[root_key.replace("[]", "")], dict):
+                        else: # root_key.replace("[]", "") in result_dict and isinstance(
+                                #result_dict[root_key.replace("[]", "")], dict):
                             temp_data = result_dict[root_key.replace("[]", "")]
                             temp_set = set(temp_data.values()) - set(['ja', 'en'])
                             if temp_set not in list_temp:
@@ -1647,10 +1986,7 @@ class DDIMapper(BaseMapper):
             """Unify all to data to type of list."""
             result = []
             for i in src_lst:
-                if isinstance(i, list):
-                    result.extend(i)
-                else:
-                    result.append(i)
+                result.append(i)
             return result
 
         def get_all_keys_forms():
@@ -1683,15 +2019,14 @@ class DDIMapper(BaseMapper):
                 merge_data_by_mapping_keys(k, v)
         for k, v in dict_data.items():
             lst_keys_with_prefix = get_all_key(k)
-            if not lst_keys_with_prefix:
-                continue
-            lst_parsed, first_key = parse_to_obj_data_by_mapping_keys(
-                convert_to_lst(v), lst_keys_with_prefix)
-            if lst_parsed:
-                if not res.get(first_key):
-                    res[first_key] = lst_parsed
-                else:
-                    res[first_key].extend(lst_parsed)
+            if lst_keys_with_prefix:
+                lst_parsed, first_key = parse_to_obj_data_by_mapping_keys(
+                    convert_to_lst(v), lst_keys_with_prefix)
+                if lst_parsed:
+                    if not res.get(first_key):
+                        res[first_key] = lst_parsed
+                    else:
+                        res[first_key].extend(lst_parsed)
 
     def map_itemtype(self, type_tag):
         """Map itemtype."""

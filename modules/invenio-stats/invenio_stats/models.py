@@ -108,25 +108,6 @@ class _StataModelBase(Timestamp):
         return query
 
     @classmethod
-    def __convert_data(cls, data_object: dict) -> object:
-        if data_object.get("_source"):
-            date = None
-            if 'timestamp' in data_object.get("_source"):
-                date = data_object.get("_source").get("timestamp")
-            elif 'date' in data_object.get("_source"):
-                date = data_object.get("_source").get("date")
-            stats_agg = cls(
-                id=_generate_id(),
-                source_id=data_object.get("_id"),
-                index=data_object.get("_index"),
-                type=data_object.get("_type"),
-                source=json.dumps(data_object.get("_source")),
-                date=date,
-            )
-            return stats_agg
-        return None
-
-    @classmethod
     def delete_by_source_id(cls, source_id: str, _index: str) -> bool:
         """Delete stats aggregation by source id.
 
@@ -142,7 +123,7 @@ class _StataModelBase(Timestamp):
                 ).delete()
             return True
         except SQLAlchemyError as err:
-            current_app.logger.error("Unexpected error: ", err)
+            current_app.logger.error("Unexpected error: {}".format(err))
             db.session.rollback()
             return False
 
@@ -181,7 +162,7 @@ class _StataModelBase(Timestamp):
             db.session.commit()
             return True
         except SQLAlchemyError as err:
-            current_app.logger.error("Unexpected error: ", err)
+            current_app.logger.error("Unexpected error: {}".format(err))
             db.session.rollback()
             return False
 
@@ -244,7 +225,6 @@ def _generate_id():
 def get_stats_events_partition_tables():
     query = "select tablename from pg_tables where tablename like 'stats_events_%'"
     tables = db.session.execute(query).fetchall()
-    db.session.commit()
 
     return [a[0] for a in tables]
 

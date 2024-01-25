@@ -26,6 +26,7 @@ from sqlalchemy.orm.exc import NoResultFound
 from weko_deposit.api import WekoRecord
 from weko_index_tree.api import Indexes
 from weko_schema_ui.schema import get_oai_metadata_formats
+from weko_schema_ui.models import PublishStatus
 
 from .api import OaiIdentify
 from .fetchers import oaiid_fetcher
@@ -321,22 +322,27 @@ def extract_paths_from_sets(sets):
     return _paths, _sets
 
 
-def is_deleted_workflow(pid):
+def is_new_workflow(record):
+    """Check workflow is new activity."""
+    return str(record.get("publish_status")) == PublishStatus.NEW.value
+
+
+def is_deleted_workflow(pid, record):
     """Check workflow is deleted."""
-    return pid.status == PIDStatus.DELETED
+    return pid.status == PIDStatus.DELETED or \
+        str(record.get("publish_status")) == PublishStatus.DELETE.value
 
 
 def is_private_workflow(record):
     """Check publish status of workflow is private."""
-    private_status = 1
-    return int(record.get("publish_status")) == private_status
+    return str(record.get("publish_status")) == PublishStatus.PRIVATE.value
 
 
 def is_pubdate_in_future(record):
     """Check pubdate of workflow is in future."""
+    from weko_records_ui.utils import is_future
     adt = record.get('publish_date')
-    pdt = to_utc(datetime.strptime(adt, '%Y-%m-%d'))
-    return pdt > datetime.utcnow()
+    return is_future(adt)
 
 
 def is_private_index(record):
@@ -387,7 +393,7 @@ def getrecord(**kwargs):
 
     identify = OaiIdentify.get_all()
     if not identify or not identify.outPutSetting:
-        return error(get_error_code_msg(), **kwargs)
+        return error([('idDoesNotExist', 'No matching identifier')])
 
     record_dumper = serializer(kwargs['metadataPrefix'])
     pid_object = OAIIDProvider.get(pid_value=kwargs['identifier']).pid
@@ -406,23 +412,25 @@ def getrecord(**kwargs):
         "is_exists_doi(record):{}".format(is_exists_doi(record)))
     current_app.logger.debug(
         "is_pubdate_in_future(record):{}".format(is_pubdate_in_future(record)))
-    current_app.logger.debug("is_deleted_workflow(pid_object):{}".format(
-        is_deleted_workflow(pid_object)))
+    current_app.logger.debug("is_deleted_workflow(pid_object, record):{}".format(
+        is_deleted_workflow(pid_object, record)))
     current_app.logger.debug(
         "is_private_workflow(pid_object):{}".format(is_private_workflow(record)))
 
     # Harvest is private
+    # or New activity
     if path_list and (_is_output == HARVEST_PRIVATE or
                       (is_exists_doi(record) and
-                       (_is_output == PRIVATE_INDEX or is_pubdate_in_future(record)))):
-        return error(get_error_code_msg(), **kwargs)
+                       (_is_output == PRIVATE_INDEX or is_pubdate_in_future(record))) or
+                      is_new_workflow(record)):
+        return error([('idDoesNotExist', 'No matching identifier')])
     # Item is deleted
     # or Harvest is public & Item is private
     # or Harvest is public & Index is private
     # or Harvest is public & There is no guest role in the index Browsing Privilege
     elif _is_output == PRIVATE_INDEX or \
             not path_list or \
-            is_deleted_workflow(pid_object) or \
+            is_deleted_workflow(pid_object, record) or \
             is_private_workflow(record) or \
             is_pubdate_in_future(record):
         header(
@@ -496,14 +504,15 @@ def listidentifiers(**kwargs):
                 "is_exists_doi(record):{}".format(is_exists_doi(record)))
             current_app.logger.debug(
                 "is_pubdate_in_future(record):{}".format(is_pubdate_in_future(record)))
-            current_app.logger.debug("is_deleted_workflow(pid_object):{}".format(
-                is_deleted_workflow(pid_object)))
+            current_app.logger.debug("is_deleted_workflow(pid_object, record):{}".format(
+                is_deleted_workflow(pid_object, record)))
             current_app.logger.debug(
                 "is_private_workflow(pid_object):{}".format(is_private_workflow(record)))
             # Harvest is private
             if path_list and (_is_output == HARVEST_PRIVATE or
                               (is_exists_doi(record) and
-                               (_is_output == PRIVATE_INDEX or is_pubdate_in_future(record)))):
+                               (_is_output == PRIVATE_INDEX or is_pubdate_in_future(record))) or
+                              is_new_workflow(record)):
                 continue
             # Item is deleted
             # or Harvest is public & Item is private
@@ -511,7 +520,7 @@ def listidentifiers(**kwargs):
             # or Harvest is public & There is no guest role in the index Browsing Privilege
             elif _is_output == PRIVATE_INDEX or \
                     not path_list or \
-                    is_deleted_workflow(pid_object) or \
+                    is_deleted_workflow(pid_object, record) or \
                     is_private_workflow(record) or \
                     is_pubdate_in_future(record):
                 header(
@@ -594,14 +603,15 @@ def listrecords(**kwargs):
                 "is_exists_doi(record):{}".format(is_exists_doi(record)))
             current_app.logger.debug(
                 "is_pubdate_in_future(record):{}".format(is_pubdate_in_future(record)))
-            current_app.logger.debug("is_deleted_workflow(pid_object):{}".format(
-                is_deleted_workflow(pid_object)))
+            current_app.logger.debug("is_deleted_workflow(pid_object, record):{}".format(
+                is_deleted_workflow(pid_object, record)))
             current_app.logger.debug(
                 "is_private_workflow(pid_object):{}".format(is_private_workflow(record)))
             # Harvest is private
             if path_list and (_is_output == HARVEST_PRIVATE or
                               (is_exists_doi(record) and
-                               (_is_output == PRIVATE_INDEX or is_pubdate_in_future(record)))):
+                               (_is_output == PRIVATE_INDEX or is_pubdate_in_future(record))) or
+                              is_new_workflow(record)):
                 continue
             # Item is deleted
             # or Harvest is public & Item is private
@@ -609,7 +619,7 @@ def listrecords(**kwargs):
             # or Harvest is public & There is no guest role in the index Browsing Privilege
             elif _is_output == PRIVATE_INDEX or \
                     not path_list or \
-                    is_deleted_workflow(pid_object) or \
+                    is_deleted_workflow(pid_object, record) or \
                     is_private_workflow(record) or \
                     is_pubdate_in_future(record):
                 e_record = SubElement(
@@ -704,13 +714,11 @@ def check_correct_system_props_mapping(object_uuid, system_mapping_config):
 
     Correct mapping mean item map have the 2 field same with config
     """
-    from weko_records.api import ItemsMetadata, Mapping
+    from weko_records.api import ItemsMetadata
     from weko_records.serializers.utils import get_mapping
 
     item_type = ItemsMetadata.get_by_object_id(object_uuid)
-    item_type_id = item_type.item_type_id
-    type_mapping = Mapping.get_record(item_type_id)
-    item_map = get_mapping(type_mapping, "jpcoar_mapping")
+    item_map = get_mapping(item_type.item_type_id, "jpcoar_mapping")
 
     if system_mapping_config:
         for key in system_mapping_config:
@@ -727,49 +735,49 @@ def combine_record_file_urls(record, object_uuid, meta_prefix):
 
     Get file property information by item_mapping and put to metadata.
     """
-    from weko_records.api import ItemsMetadata, Mapping
+    from weko_records.api import ItemsMetadata
     from weko_records.serializers.utils import get_mapping
     from weko_schema_ui.schema import get_oai_metadata_formats
 
     metadata_formats = get_oai_metadata_formats(current_app)
     item_type = ItemsMetadata.get_by_object_id(object_uuid)
-    item_type_id = item_type.item_type_id
-    type_mapping = Mapping.get_record(item_type_id)
     mapping_type = metadata_formats[meta_prefix]['serializer'][1]['schema_type']
-    item_map = get_mapping(type_mapping,
+    item_map = get_mapping(item_type.item_type_id,
                            "{}_mapping".format(mapping_type))
-    file_keys = None
+    file_keys_str = None
     if item_map:
         file_props = current_app.config["OAISERVER_FILE_PROPS_MAPPING"]
         if mapping_type in file_props:
-            file_keys = item_map.get(file_props[mapping_type])
+            file_keys_str = item_map.get(file_props[mapping_type])
         else:
-            file_keys = None
+            file_keys_str = None
 
-    if not file_keys:
+    if not file_keys_str:
         return record
     else:
-        file_keys = file_keys.split('.')
+        file_keys = file_keys_str.split(',')
 
-    if len(file_keys) == 3 and record.get(file_keys[0]):
-        attr_mlt = record[file_keys[0]]["attribute_value_mlt"]
-        if isinstance(attr_mlt, list):
-            for attr in attr_mlt:
-                if attr.get('filename'):
-                    if not attr.get(file_keys[1]):
-                        attr[file_keys[1]] = {}
-                    attr[file_keys[1]][file_keys[2]] = create_files_url(
-                        request.url_root,
-                        record.get('recid'),
-                        attr.get('filename'))
-        elif isinstance(attr_mlt, dict) and \
-                attr_mlt.get('filename'):
-            if not attr_mlt.get(file_keys[1]):
-                attr_mlt[file_keys[1]] = {}
-            attr_mlt[file_keys[1]][file_keys[2]] = create_files_url(
-                request.url_root,
-                record.get('recid'),
-                attr_mlt.get('filename'))
+    for file_key in file_keys:
+        key = file_key.split('.')
+        if len(key) == 3 and record.get(key[0]):
+            attr_mlt = record[key[0]]["attribute_value_mlt"]
+            if isinstance(attr_mlt, list):
+                for attr in attr_mlt:
+                    if attr.get('filename'):
+                        if not attr.get(key[1]):
+                            attr[key[1]] = {}
+                        attr[key[1]][key[2]] = create_files_url(
+                            request.url_root,
+                            record.get('recid'),
+                            attr.get('filename'))
+            elif isinstance(attr_mlt, dict) and \
+                    attr_mlt.get('filename'):
+                if not attr_mlt.get(key[1]):
+                    attr_mlt[key[1]] = {}
+                attr_mlt[key[1]][key[2]] = create_files_url(
+                    request.url_root,
+                    record.get('recid'),
+                    attr_mlt.get('filename'))
 
     return record
 

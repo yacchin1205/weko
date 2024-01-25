@@ -49,12 +49,12 @@ class ESQuery(object):
                 date = dateutil.parser.parse(date)
             except ValueError:
                 raise ValueError(
-                    'Invalid date format for statistic {}.'
-                ).format(self.query_name)
+                    'Invalid date format for statistic {}.'.format(self.query_name)
+                )
         if not isinstance(date, datetime):
             raise TypeError(
-                'Invalid date type for statistic {}.'
-            ).format(self.query_name)
+                'Invalid date type for statistic {}.'.format(self.query_name)
+            )
         return date
 
     def run(self, *args, **kwargs):
@@ -102,8 +102,8 @@ class ESDateHistogramQuery(ESQuery):
         """Validate query arguments."""
         if interval not in self.allowed_intervals:
             raise InvalidRequestInputError(
-                'Invalid aggregation time interval for statistic {}.'
-            ).format(self.query_name)
+                'Invalid aggregation time interval for statistic {}.'.format(self.query_name)
+            )
         if set(kwargs) < set(self.required_filters):
             raise InvalidRequestInputError(
                 'Missing one of the required parameters {0} in '
@@ -134,7 +134,7 @@ class ESDateHistogramQuery(ESQuery):
             'date_histogram',
             field=self.time_field,
             interval=interval,
-            time_zone=current_app.config['STATS_WEKO_DEFAULT_TIMEZONE']
+            time_zone=str(current_app.config['STATS_WEKO_DEFAULT_TIMEZONE']())
         )
 
         for destination, (metric, field, opts) in self.metric_fields.items():
@@ -251,8 +251,8 @@ class ESTermsQuery(ESQuery):
                 time_range['gte'] = start_date.isoformat()
             if end_date:
                 time_range['lte'] = end_date.isoformat()
-            time_range['time_zone'] = current_app.config[
-                'STATS_WEKO_DEFAULT_TIMEZONE']
+            time_range['time_zone'] = str(
+                current_app.config['STATS_WEKO_DEFAULT_TIMEZONE']())
             agg_query = agg_query.filter(
                 'range',
                 **{self.time_field: time_range})
@@ -425,8 +425,8 @@ class ESWekoFileStatsQuery(ESTermsQuery):
                 time_range['gte'] = start_date.isoformat()
             if end_date:
                 time_range['lte'] = end_date.isoformat()
-            time_range['time_zone'] = current_app.config[
-                'STATS_WEKO_DEFAULT_TIMEZONE']
+            time_range['time_zone'] = str(
+                current_app.config['STATS_WEKO_DEFAULT_TIMEZONE']())
             agg_query = agg_query.filter(
                 'range',
                 **{self.time_field: time_range})
@@ -571,7 +571,7 @@ class ESWekoRankingQuery(ESTermsQuery):
                 "@{}".format(_field), kwargs.get(_field, ""))
 
         query_q = query_q.replace(
-            "@time_zone", current_app.config['STATS_WEKO_DEFAULT_TIMEZONE']
+            "@time_zone", str(current_app.config['STATS_WEKO_DEFAULT_TIMEZONE']())
         )
         query_q = json.loads(query_q)
         if kwargs.get("must_not"):
@@ -596,4 +596,5 @@ class ESWekoRankingQuery(ESTermsQuery):
         agg_query = self.build_query(**kwargs)
 
         query_result = agg_query.execute().to_dict()
+        
         return query_result

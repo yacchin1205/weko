@@ -52,6 +52,7 @@ from jinja2 import Template
 from simplekv.memory.redisstore import RedisStore
 from sqlalchemy import func
 from weko_authors.models import Authors
+from weko_schema_ui.models import PublishStatus
 
 from weko_records.api import ItemsMetadata
 from weko_redis.redis import RedisConnection
@@ -152,16 +153,11 @@ def update_admin_lang_setting(admin_lang_settings):
 
     :param admin_lang_settings: input data to update language into database
     """
-    try:
-        for admin_lang in admin_lang_settings:
-            AdminLangSettings.update_lang(admin_lang.get('lang_code'),
-                                          admin_lang.get('lang_name'),
-                                          admin_lang.get('is_registered'),
-                                          admin_lang.get('sequence'))
-    except Exception as e:
-        return str(e)
-    return 'success'
-
+    for admin_lang in admin_lang_settings:
+        AdminLangSettings.update_lang(admin_lang.get('lang_code'),
+                                      admin_lang.get('lang_name'),
+                                      admin_lang.get('is_registered'),
+                                      admin_lang.get('sequence'))
 
 def get_selected_language():
     """Get selected language."""
@@ -2112,7 +2108,7 @@ def create_facet_search_query():
                 create_agg_by_aggregations(facet.aggregations, key, val))
             # Update agg query for no permission.
             facet.aggregations.append(
-                {'agg_mapping': 'publish_status', 'agg_value': '0'})
+                {'agg_mapping': 'publish_status', 'agg_value': PublishStatus.PUBLIC.value})
             agg_no_permission_query.update(
                 create_agg_by_aggregations(facet.aggregations, key, val))
         return agg_has_permission_query, agg_no_permission_query
