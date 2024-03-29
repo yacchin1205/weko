@@ -40,6 +40,13 @@ ENV INVENIO_RABBITMQ_PASS=guest
 ENV INVENIO_RABBITMQ_VHOST=/
 ENV INVENIO_WORKER_HOST=127.0.0.1
 ENV SEARCH_INDEX_PREFIX=tenant1
+ENV INVENIO_WEB_PROTOCOL=https
+ENV CACHE_REDIS_DB=0
+ENV ACCOUNTS_SESSION_REDIS_DB_NO=1
+ENV CELERY_RESULT_BACKEND_DB_NO=2
+ENV WEKO_AGGREGATE_EVENT_HOUR=0
+ENV WEKO_AGGREGATE_EVENT_MINUTE=0
+
 # Configure SQLAlchemy connection pool
 # see: https://docs.sqlalchemy.org/en/12/core/pooling.html#api-documentation-available-pool-implementations
 ENV INVENIO_DB_POOL_CLASS=QueuePool
@@ -84,7 +91,8 @@ ENV VIRTUALENVWRAPPER_PYTHON=/home/invenio/.virtualenvs/invenio/bin/python
 #RUN echo "source /usr/local/bin/virtualenvwrapper.sh" >> ~/.bashrc ; echo "workon invenio" >> ~/.bashrc
 RUN pip install virtualenvwrapper
 RUN echo "source /home/invenio/.virtualenvs/invenio/bin/virtualenvwrapper.sh" >> ~/.bashrc ; echo "workon invenio" >> ~/.bashrc
-#RUN mv /home/invenio/.virtualenvs/invenio/var/instance/static /home/invenio/.virtualenvs/invenio/var/instance/static.org
+
+RUN mv /home/invenio/.virtualenvs/invenio/var/instance/static /home/invenio/.virtualenvs/invenio/var/instance/static.org
 
 # CMD ["/bin/bash", "-c", "gunicorn invenio_app.wsgi --workers=4 --worker-class=meinheld.gmeinheld.MeinheldWorker -b 0.0.0.0:5000 "]
 #CMD ["/bin/bash","-c","uwsgi --ini /code/scripts/uwsgi.ini"]

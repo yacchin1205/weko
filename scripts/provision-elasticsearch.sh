@@ -72,6 +72,10 @@ provision_elasticsearch_ubuntu14 () {
         fi
     fi
 
+    # disable jndi lookup
+    apt-get -y install zip
+    sudo sed -i 's/%m%n/%m{nolookups}%n/g' /etc/elasticsearch/config/log4j2.properties
+
     # enable Elasticsearch upon reboot:
     sudo update-rc.d elasticsearch defaults 95 10
 
@@ -122,6 +126,10 @@ enabled=1" | \
         sudo firewall-cmd --reload
     fi
 
+    # disable jndi lookup
+    sudo yum install -y zip
+    sudo sed -i 's/%m%n/%m{nolookups}%n/g' /etc/elasticsearch/config/log4j2.properties
+
     # enable Elasticsearch upon reboot:
     sudo systemctl enable elasticsearch
 
@@ -139,6 +147,11 @@ provision_elasticsearch_docker () {
         echo "s3.client.default.endpoint: ${ELASTICSEARCH_S3_ENDPOINT}" | \
             tee -a /usr/share/elasticsearch/config/elasticsearch.yml
     fi
+
+    # disable jndi lookup
+    #yum install -y zip
+    #sed -i 's/%m%n/%m{nolookups}%n/g' /usr/share/elasticsearch/config/log4j2.properties
+    #zip -q -d /usr/share/elasticsearch/lib/log4j-core-*.jar org/apache/logging/log4j/core/lookup/JndiLookup.class
 }
 
 install_plugins () {
