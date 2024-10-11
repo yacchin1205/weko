@@ -2491,7 +2491,13 @@ def handle_doi_required_check(record):
         )
 
         if error_list:
-            errors = [_("PID does not meet the conditions.<br/>")]
+            errors = []
+            current_app.logger.error("error_list: {0}".format(error_list))
+            if error_list.get("pattern"):
+                pattern_err_msg = _("One of the following required values ​​has not been registered.<br/>{}<br/>")
+                errors.append(
+                    pattern_err_msg.format(error_list.get("pattern"))
+                )
             if error_list.get("mapping"):
                 mapping_err_msg = _(
                     "The mapping of required items for DOI "
