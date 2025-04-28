@@ -44,13 +44,15 @@ tests_require = [
     'responses',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 extras_require = {
     'docs': [
         'Sphinx>=1.5.1',
     ],
     'files': [
-        'invenio-files-rest>=1.0.0a9',
-        'invenio-records-files>=1.0.0a8',
+        f'invenio-files-rest @ file://localhost{modules_dir}/invenio-files-rest#egg=invenio_files_rest',
+        'invenio-records-files==1.0.0a10',
     ],
     'tests': tests_require,
 }
@@ -64,6 +66,8 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'Flask>=0.11.1',
     'Flask-BabelEx>=0.9.3',
@@ -73,7 +77,7 @@ install_requires = [
     'invenio-pidstore>=1.0.0b1',
     'invenio-records-ui>=1.0.0a8',
     'ipython>=4.1.0',
-    'nbconvert[execute]>=4.1.0',
+    'nbconvert>=4.1.0',
     'nbformat>=4.0.1',
 ]
 

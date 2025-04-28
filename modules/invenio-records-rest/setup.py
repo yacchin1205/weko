@@ -28,6 +28,8 @@ tests_require = [
     'dcxml>=0.1.0',
     'pyld>=0.7.1',
     'frozendict>=1.0.0',
+    'elasticsearch>=5.0.0',
+    'invenio-search>=1.0.0a11,<2',
 ]
 
 invenio_search_version = '1.0.0'
@@ -73,6 +75,8 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5'
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'arrow>=0.12.1',
     'attrs>=17.4.0',
@@ -81,13 +85,18 @@ install_requires = [
     'Flask>=0.11.1',
     'Flask-BabelEx>=0.9.2',
     'invenio-pidstore>=1.0.0',
-    'invenio-records>=1.0.0',
-    'invenio-rest>=1.0.0',
-    'invenio-indexer>=1.0.0',
-    'marshmallow>=2.5.0',
+    f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
+    # To reduce the number of dependencies, <1.2
+    'invenio-rest>=1.1.0,<1.2',
+    f'invenio-indexer @ file://localhost{modules_dir}/invenio-indexer#egg=invenio_indexer',
+    'flask-marshmallow>=0.14.0',
+    'marshmallow-sqlalchemy>=0.23.1',
+    'marshmallow>=2.15.0,<3',
     'python-dateutil>=2.4.2',
     'six>=1.11',
     'webargs>=1.3.2',
+    'citeproc-py>=0.5.1',
+    'citeproc-py-styles>=0.1.2',
 ]
 
 packages = find_packages()

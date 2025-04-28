@@ -24,6 +24,7 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'Flask-Menu>=0.6.0,<2.0',
 ]
 
 extras_require = {
@@ -44,6 +45,7 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.3',
+    'resync>=1.0.9,<2',
 ]
 
 packages = find_packages()

@@ -116,9 +116,12 @@ cdvirtualenv
 # sphinxdoc-create-virtual-environment-end
 
 # quit on errors and unbound symbols:
-set -o errexit
-set -o nounset
+# set -o errexit
+# set -o nounset
+set -xe
 
+pip install pipdeptree
+pipdeptree
 
 # sphinxdoc-customise-instance-begin
 mkdir -p "var/instance/"

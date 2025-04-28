@@ -43,6 +43,7 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.3',
+    'flask-sitemap>=0.1.0',
 ]
 
 packages = find_packages()

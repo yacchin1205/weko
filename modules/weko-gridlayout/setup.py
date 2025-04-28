@@ -14,6 +14,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -23,6 +25,15 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
+    f'invenio-files-rest @ file://localhost{modules_dir}/invenio-files-rest#egg=invenio_files_rest',
+    f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
+    f'weko-admin @ file://localhost{modules_dir}/weko-admin#egg=weko_admin',
+    f'weko-redis @ file://localhost{modules_dir}/weko-redis#egg=weko_redis',
+    f'weko-records @ file://localhost{modules_dir}/weko-records#egg=weko_records',
+    f'weko-index-tree @ file://localhost{modules_dir}/weko-index-tree#egg=weko_index_tree',
+    f'weko-deposit @ file://localhost{modules_dir}/weko-deposit#egg=weko_deposit',
+    f'invenio-deposit @ file://localhost{modules_dir}/invenio-deposit#egg=invenio_deposit',
 ]
 
 extras_require = {
@@ -43,6 +54,8 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.3',
+    'Pillow>=5.4.1',
+    f'weko-theme @ file://localhost{modules_dir}/weko-theme#egg=weko_theme',
 ]
 
 packages = find_packages()

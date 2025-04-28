@@ -27,6 +27,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -36,6 +38,8 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'invenio-access>=1.0.0,<2',
+    f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
 ]
 
 extras_require = {
@@ -56,11 +60,12 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.2',
-    'invenio-accounts>=1.0.0b10',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
     'invenio-logging>=1.0.0b3',
-    'invenio-db>=1.0.0b9',
-    'invenio-admin>=1.0.0b4',
-    'invenio-accounts>=1.0.0b3',
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    # To reduce the number of dependencies, <1.3.0
+    'invenio-admin>=1.0.0b4,<1.3.0',
+    f'weko-user-profiles @ file://localhost{modules_dir}/weko-user-profiles#egg=weko_user_profiles',
 ]
 
 packages = find_packages()

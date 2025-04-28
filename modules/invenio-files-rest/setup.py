@@ -24,7 +24,10 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'invenio-access>=1.0.0,<2',
 ]
+
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
 
 extras_require = {
     'docs': [
@@ -32,13 +35,13 @@ extras_require = {
         'sphinxcontrib-httpdomain>=1.4.0',
     ],
     'postgresql': [
-        'invenio-db[postgresql]>=1.0.0',
+        f'invenio-db[postgresql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'mysql': [
-        'invenio-db[mysql]>=1.0.0',
+        f'invenio-db[mysql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db>=1.0.0',
+        f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'tests': tests_require,
 }
@@ -52,15 +55,20 @@ for name, reqs in extras_require.items():
 
 
 install_requires = [
-    'Flask-CeleryExt>=0.3.1',
+    'Flask-CeleryExt>=0.3.4',
+    'celery>=5.2.1',
     'Flask-Login>=0.3.2',
     'Flask-WTF>=0.13.1',
+    # To prevent "No such file or directory: '/tmp/pip-install-_5va7eb3/flask-cors_xxx/requirements.txt'""
+    'Flask-Cors>=4.0',
     'Flask>=0.11.1',
-    'fs>=0.5.4,<2.0',
-    'invenio-rest[cors]>=1.1.0',
+    'fs>=2.4',
+    'invenio-rest[cors]>=1.1.0,<1.2',
     'simplejson>=3.0.0',
     'SQLAlchemy-Utils>=0.31.0',
     'WTForms>=2.0',
+    f'invenio-previewer @ file://localhost{modules_dir}/invenio-previewer#egg=invenio_previewer',
+    f'weko-admin @ file://localhost{modules_dir}/weko-admin#egg=weko_admin',
 ]
 
 setup_requires = [

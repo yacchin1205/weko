@@ -15,6 +15,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -24,6 +26,7 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'weko-index-tree @ file://localhost{modules_dir}/weko-index-tree#egg=weko_index_tree',
 ]
 
 extras_require = {
@@ -48,7 +51,8 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.3',
-    'invenio-logging>=1.0.0b3',
+    'invenio-logging>=1.0.0b3,<2',
+    'numpy>=1.16.1,<2',
 ]
 
 packages = find_packages()

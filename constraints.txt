@@ -1,0 +1,42 @@
+celery>=5.2.1,<5.3.0
+
+# https://stackoverflow.com/questions/72191560/importerror-cannot-import-name-soft-unicode-from-markupsafe
+MarkupSafe>=1.1.1,<2.1
+
+# TODO
+#-e git+https://github.com/RCOSDP/PyPDF2.git@fix/nii#egg=PyPDF2
+
+# https://stackoverflow.com/questions/75275563/attributeerror-module-sqlalchemy-has-no-attribute-all
+SQLAlchemy>=1.2.19,<2.0
+
+# https://stackoverflow.com/questions/77213053/why-did-flask-start-failing-with-importerror-cannot-import-name-url-quote-fr
+# https://github.com/mjmeijer/donald_2021/issues/4
+Werkzeug==2.0.3
+
+# https://github.com/pallets/jinja/pull/1544
+jinja2<3.1
+
+# Fix ImportError: cannot import name 'HTMLString' from 'wtforms.widgets'
+WTForms>=2.1,<3
+
+# Constraints for Upstream Dependencies
+invenio-records-files==1.0.0a10
+invenio-records-ui==1.0.0a8
+invenio-marc21==1.0.0a8
+invenio-oauthclient==1.0.0
+invenio-access==1.1.0
+
+# To avoid the error `ValueError: 'name' may not contain a dot '.' character.`
+Flask>=1.1.0,<2.0.0
+
+# https://click.palletsprojects.com/en/stable/changes/#version-8-1-0
+click>6.7,<8.1
+
+# Workaround for ImportError: cannot import name 'json' from 'itsdangerous' (/home/runner/work/weko/weko/venv/lib/python3.9/site-packages/itsdangerous/__init__.py)
+itsdangerous<2.1.0
+
+# TODO: TEST
+importlib-metadata>=4.8.3
+importlib-resources>=5.4.0
+invenio-pidstore<=1.2
+invenio-i18n<=1.2

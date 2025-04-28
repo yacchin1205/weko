@@ -116,7 +116,7 @@ def _assert_no_csrf_token(form):
     """Assert that the field `csrf_token` does not exist in the form."""
     assert 'profile' in form
     assert 'csrf_token' not in form.profile
-    # Flask-WTF==0.13.1 adds always `csrf_token` field, but with None value
+    # Flask-WTF>=0.13.1 adds always `csrf_token` field, but with None value
     # Flask-WTF>0.14.2 do not `csrf_token` field
     assert 'csrf_token' not in form or form.csrf_token.data is None
 

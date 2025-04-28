@@ -114,7 +114,7 @@ source "$(which virtualenvwrapper.sh)"
 scriptpathname=$(cd "$(dirname "$0")" && pwd)
 
 # sphinxdoc-create-virtual-environment-begin
-mkvirtualenv "${INVENIO_WEB_VENV}"
+workon "${INVENIO_WEB_VENV}"
 cdvirtualenv
 # sphinxdoc-create-virtual-environment-end
 
@@ -122,16 +122,7 @@ cdvirtualenv
 set -o errexit
 set -o nounset
 
-# fix build error (weko#23031)
-pip install pip==20.2.4
-pip install setuptools==57.5.0
-
-if [[ "$@" != *"--devel"* ]]; then
 # sphinxdoc-install-invenio-full-begin
-    pip install -r "$scriptpathname/../packages.txt"
-    pip install --no-deps -r "$scriptpathname/../packages-invenio.txt"
-    pip install --no-deps -r "$scriptpathname/../requirements-weko-modules.txt"
+${scriptpathname}/pip-install-modules.sh ../modules
+pip install --no-cache-dir -c "${scriptpathname}/../constraints.txt" -r "${scriptpathname}/../packages-invenio.txt"
 # sphinxdoc-install-invenio-full-end
-else
-    pip install -r "$scriptpathname/../requirements-devel.txt"
-fi

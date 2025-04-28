@@ -54,8 +54,17 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'Flask-BabelEx>=0.9.2',
+    f'invenio-records-rest @ file://localhost{modules_dir}/invenio-records-rest#egg=invenio_records_rest',
+    f'invenio-oauth2server @ file://localhost{modules_dir}/invenio-oauth2server#egg=invenio_oauth2server',
+    f'weko-groups @ file://localhost{modules_dir}/weko-groups#egg=weko_groups',
+    f'weko-redis @ file://localhost{modules_dir}/weko-redis#egg=weko_redis',
+    f'weko-schema-ui @ file://localhost{modules_dir}/weko-schema-ui#egg=weko_schema_ui',
+    f'weko-records @ file://localhost{modules_dir}/weko-records#egg=weko_records',
+    f'weko-admin @ file://localhost{modules_dir}/weko-admin#egg=weko_admin',
 ]
 
 packages = find_packages()

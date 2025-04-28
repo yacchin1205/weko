@@ -10,7 +10,7 @@ trap "exit" INT
 python -m venv venv
 . venv/bin/activate
 python -m pip install -U 'setuptools==57.5.0' wheel 'pip==20.2.4' coveralls PyYAML
-pip install -r packages.txt
+pip install -r constraints.txt
 pip install --no-deps -r packages-invenio.txt
 sed -E 's/\/code\///g' requirements-weko-modules.txt | xargs pip install --no-deps
 python -m pip uninstall -y 'coverage' 'pytest' 'pytest-cov' 'pytest-invenio' 'mock' 'urllib3' 'responses' 'moto'

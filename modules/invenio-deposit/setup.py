@@ -40,6 +40,8 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'invenio-search>=1.0.0a11,<2',
+    'invenio-access>=1.0.0,<2',
 ]
 
 extras_require = {
@@ -76,23 +78,25 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'Flask-BabelEx>=0.9.3',
     'Flask-Login>=0.3.2',
-    'Flask>=0.11.1',
+    'Flask>=1.1.0,<2.0.0',
     'SQLAlchemy-Continuum>=1.3',
     'SQLAlchemy-Utils[encrypted]>=0.32.6',
     'dictdiffer>=0.5.0.post1',
-    'invenio-assets>=1.0.0b6',
-    'invenio-db[versioning]>=1.0.0b3',
-    'invenio-files-rest>=1.0.0a14',
+    'invenio-assets>=1.0.0b6,<2',
+    f'invenio-db[versioning] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    f'invenio-files-rest @ file://localhost{modules_dir}/invenio-files-rest#egg=invenio_files_rest',
     'invenio-jsonschemas>=1.0.0a3',
-    'invenio-oauth2server>=1.0.0a12',
-    'invenio-records-files>=1.0.0a8',
-    'invenio-records-rest>=1.0.0b5',
-    'invenio-records-ui>=1.0.0a8',
-    'invenio-search-ui>=1.0.0a5',
-    'invenio-search>=1.0.0a11',
+    f'invenio-oauth2server @ file://localhost{modules_dir}/invenio-oauth2server#egg=invenio_oauth2server',
+    'invenio-records-files==1.0.0a10',
+    f'invenio-records-rest @ file://localhost{modules_dir}/invenio-records-rest#egg=invenio_records_rest',
+    'invenio-records-ui==1.0.0a8',
+    'invenio-search-ui>=1.0.0a5,<2',
+    'invenio-search>=1.0.0a11,<2',
 ]
 
 packages = find_packages()

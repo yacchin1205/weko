@@ -27,6 +27,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -36,6 +38,9 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'Flask-Menu>=0.6.0,<2.0',
+    'invenio-search>=1.0.0a11,<2',
+    f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
 ]
 
 extras_require = {
@@ -57,6 +62,22 @@ setup_requires = [
 install_requires = [
     'Flask>=0.11.1',
     'Flask-BabelEx>=0.9.2',
+    'xmltodict>=0.12.0',
+    f'weko-deposit @ file://localhost{modules_dir}/weko-deposit#egg=weko_deposit',
+    f'weko-items-ui @ file://localhost{modules_dir}/weko-items-ui#egg=weko_items_ui',
+    f'weko-index-tree @ file://localhost{modules_dir}/weko-index-tree#egg=weko_index_tree',
+    f'weko-records @ file://localhost{modules_dir}/weko-records#egg=weko_records',
+    f'weko-schema-ui @ file://localhost{modules_dir}/weko-schema-ui#egg=weko_schema_ui',
+    f'weko-groups @ file://localhost{modules_dir}/weko-groups#egg=weko_groups',
+    f'weko-handle @ file://localhost{modules_dir}/weko-handle#egg=weko_handle',
+    f'weko-admin @ file://localhost{modules_dir}/weko-admin#egg=weko_admin',
+    f'weko-redis @ file://localhost{modules_dir}/weko-redis#egg=weko_redis',
+    f'weko-user-profiles @ file://localhost{modules_dir}/weko-user-profiles#egg=weko_user_profiles',
+    f'weko-records-ui @ file://localhost{modules_dir}/weko-records-ui#egg=weko_records_ui',
+    f'weko-accounts @ file://localhost{modules_dir}/weko-accounts#egg=weko_accounts',
+    f'weko-authors @ file://localhost{modules_dir}/weko-authors#egg=weko_authors',
+    f'weko-search-ui @ file://localhost{modules_dir}/weko-search-ui#egg=weko_search_ui',
+    f'weko-theme @ file://localhost{modules_dir}/weko-theme#egg=weko_theme',
 ]
 
 packages = find_packages()

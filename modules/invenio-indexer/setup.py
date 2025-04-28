@@ -15,11 +15,13 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'attrs>=17.4.0',
     'check-manifest>=0.25',
     'coverage>=4.0',
-    'invenio-db[versioning]>=1.0.0',
+    f'invenio-db[versioning] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     'isort>=4.2.2',
     'mock>=1.3.0',
     'pydocstyle>=1.0.0',
@@ -33,7 +35,7 @@ invenio_search_version = '1.0.0'
 
 extras_require = {
     'docs:python_version=="2.7"': [
-        'celery>=3.1.16',
+        'celery>=4.4.4',
     ],
     'docs': [
         'Sphinx>=1.5.1,<1.6',
@@ -62,10 +64,14 @@ setup_requires = [
 
 install_requires = [
     'Flask>=0.11.1',
-    'Flask-CeleryExt>=0.3.0',
+    'Flask-CeleryExt>=0.3.4',
+    'celery>=5.2.1',
     'invenio-pidstore>=1.0.0',
-    'invenio-records>=1.0.0',
+    f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
     'pytz>=2016.4',
+    # https://click.palletsprojects.com/en/stable/changes/#version-8-1-0
+    'click>6.7,<8.1',
+    f'weko-records @ file://localhost{modules_dir}/weko-records#egg=weko_records',
 ]
 
 packages = find_packages()

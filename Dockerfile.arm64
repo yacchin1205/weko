@@ -71,7 +71,7 @@ USER invenio
 COPY --chown=invenio:invenio scripts /code/scripts
 COPY --chown=invenio:invenio tools /code/tools
 COPY --chown=invenio:invenio modules /code/modules
-COPY --chown=invenio:invenio packages.txt /code/packages.txt
+COPY --chown=invenio:invenio constraints.txt /code/constraints.txt
 COPY --chown=invenio:invenio packages-invenio.txt /code/packages-invenio.txt
 COPY --chown=invenio:invenio requirements-weko-modules.txt /code/requirements-weko-modules.txt
 COPY --chown=invenio:invenio invenio /code/invenio
@@ -85,7 +85,7 @@ RUN source "$(which virtualenvwrapper.sh)" && \
     cdvirtualenv && \
     pip install pip==20.2.4 && \
     pip install setuptools==57.5.0 && \
-    pip install -r "/code/packages.txt" && \
+    pip install -r "/code/constraints.txt" && \
     pip install --no-deps -r "/code/packages-invenio.txt" && \
     pip install --no-deps -r "/code/requirements-weko-modules.txt" && \
     mkdir -p "var/instance/" && \

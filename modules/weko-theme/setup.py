@@ -36,6 +36,7 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'invenio-search-ui>=1.0.0a5,<2',
 ]
 
 extras_require = {
@@ -54,8 +55,11 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'Flask-BabelEx>=0.9.2',
+    f'weko-records-ui @ file://localhost{modules_dir}/weko-records-ui#egg=weko_records_ui',
 ]
 
 packages = find_packages()

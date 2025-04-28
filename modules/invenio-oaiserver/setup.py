@@ -24,9 +24,13 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'elasticsearch>=5.0.0',
+    'invenio-search>=1.0.0a11,<2',
 ]
 
 invenio_search_version = '1.0.0'
+
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
 
 extras_require = {
     'admin': [
@@ -50,13 +54,13 @@ extras_require = {
     ],
     # Database
     'mysql': [
-        'invenio-db[mysql]>=1.0.0',
+        f'invenio-db[mysql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'postgresql': [
-        'invenio-db[postgresql]>=1.0.0',
+        f'invenio-db[postgresql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db>=1.0.0',
+        f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'tests': tests_require,
 }
@@ -79,10 +83,13 @@ install_requires = [
     'Flask-BabelEx>=0.9.2',
     'dojson>=1.2.0',
     'invenio-pidstore>=1.0.0b2',
-    'invenio-records>=1.0.0b3',
+    f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
     'lxml>=3.5.0',
-    'marshmallow>=2.7.0',
+    'flask-marshmallow>=0.14.0',
+    'marshmallow-sqlalchemy>=0.23.1',
+    'marshmallow>=2.15.0,<3',
     'webargs>=1.3.2',
+    f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
 ]
 
 packages = find_packages()

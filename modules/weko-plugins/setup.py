@@ -36,6 +36,7 @@ tests_require = [
     "pytest-pep8",
     "pytest-invenio",
     "responses",
+    "Flask-Admin>=1.3.0",
 ]
 
 extras_require = {

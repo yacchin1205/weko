@@ -21,7 +21,7 @@ source venv/bin/activate
 
 ```shell
 python -m pip install -U setuptools wheel pip
-python -m pip install -r packages.txt
+python -m pip install -r constraints.txt
 python -m pip install -r packages-invenio.txt
 sed -E 's/\/code\///g' requirements-weko-modules.txt | xargs python -m pip install
 python -m pip install 'pytest>=4.6.4,<5.0.0' 'coverage>=4.5.3,<5.0.0' 'mock==3.0.5' 'moto==1.3.5' pytest-cov pytest-invenio responses

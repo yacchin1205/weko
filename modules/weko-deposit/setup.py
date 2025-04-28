@@ -27,6 +27,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -36,6 +38,9 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'invenio-search>=1.0.0a11,<2',
+    'invenio-access>=1.0.0,<2',
+    f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
 ]
 
 extras_require = {
@@ -56,6 +61,11 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.2',
+    'chardet>=3.0.4',
+    'tika>=2.6.0',
+    f'invenio-oaiserver @ file://localhost{modules_dir}/invenio-oaiserver#egg=invenio_oaiserver',
+    f'invenio-indexer @ file://localhost{modules_dir}/invenio-indexer#egg=invenio_indexer',
+    f'invenio-deposit @ file://localhost{modules_dir}/invenio-deposit#egg=invenio_deposit',
 ]
 
 packages = find_packages()

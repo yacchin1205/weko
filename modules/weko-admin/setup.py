@@ -54,22 +54,30 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'WTForms>=2.0.1',
     'Flask-BabelEx>=0.9.3',
-    'Flask-Breadcrumbs>=0.3.0',
+    'Flask-Breadcrumbs>=0.4.0',
     'Flask-WTF>=0.13.1',
     'Flask-Mail>=0.9.1',
-    'invenio-db>=1.0.0b9',
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     'SQLAlchemy-Continuum>=1.3.6',
-    'invenio-accounts>=1.0.0b3',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
     "elasticsearch_dsl<7.0.0,>=6.0.0",
     'invenio-assets>=1.0.0b7',
-    'invenio-admin>=1.1.2',
+    # To reduce the number of dependencies, <1.3.0
+    'invenio-admin>=1.0.0b4,<1.3.0',
     'requests>=2.18.4',
-    'invenio-cache>=1.0.0',
-    'invenio-indexer>=1.0.0',
+    'invenio-cache>=1.0.0,<1.2',
+    f'invenio-indexer @ file://localhost{modules_dir}/invenio-indexer#egg=invenio_indexer',
     'invenio-search>=1.0.0',
+    f'invenio-mail @ file://localhost{modules_dir}/invenio-mail#egg=invenio_mail',
+    f'invenio-stats @ file://localhost{modules_dir}/invenio-stats#egg=invenio_stats',
+    f'weko-authors @ file://localhost{modules_dir}/weko-authors#egg=weko_authors',
+    f'weko-schema-ui @ file://localhost{modules_dir}/weko-schema-ui#egg=weko_schema_ui',
+    f'weko-index-tree @ file://localhost{modules_dir}/weko-index-tree#egg=weko_index_tree',
 ]
 
 packages = find_packages()

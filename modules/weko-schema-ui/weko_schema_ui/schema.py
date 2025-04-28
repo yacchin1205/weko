@@ -35,8 +35,8 @@ from simplekv.memory.redisstore import RedisStore
 from weko_records.api import ItemLink, Mapping, ItemTypes
 from weko_redis import RedisConnection
 from xmlschema.validators import XsdAnyAttribute, XsdAnyElement, \
-    XsdAtomicBuiltin, XsdAtomicRestriction, XsdEnumerationFacet, XsdGroup, \
-    XsdPatternsFacet, XsdSingleFacet, XsdUnion
+    XsdAtomicBuiltin, XsdAtomicRestriction, XsdEnumerationFacets, XsdGroup, \
+    XsdPatternFacets, XsdFacet, XsdUnion
 
 from .api import WekoSchema
 from .models import OAIServerSchema
@@ -87,16 +87,16 @@ class SchemaConverter:
             if isinstance(type, XsdAtomicRestriction):
                 rstr = typd['restriction'] = OrderedDict()
                 for va in type.validators:
-                    if isinstance(va, XsdEnumerationFacet):
+                    if isinstance(va, XsdEnumerationFacets):
                         rstr.update(OrderedDict(enumeration=va.enumeration))
-                    if isinstance(va, XsdSingleFacet):
+                    if isinstance(va, XsdFacet):
                         sf = OrderedDict()
                         vn = va.elem.tag.split(
                             '}')[-1] if "}" in va.elem.tag else va.elem.tag
                         sf[vn] = va.value
                         rstr.update(sf)
 
-                if isinstance(type.patterns, XsdPatternsFacet):
+                if isinstance(type.patterns, XsdPatternFacets):
                     plst = []
                     for pat in type.patterns.patterns:
                         plst.append(pat.pattern)

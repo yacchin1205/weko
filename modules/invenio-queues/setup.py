@@ -53,7 +53,7 @@ setup_requires = [
 
 install_requires = [
     'Flask>=0.11',
-    'kombu>=4.0.2,<5.0',
+    'kombu>=4.0.2',
     'redis>=2.10.0',
 ]
 

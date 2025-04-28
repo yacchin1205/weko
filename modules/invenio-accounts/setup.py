@@ -28,6 +28,8 @@ tests_require = [
     'selenium>=3.0.1',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 extras_require = {
     'admin': [
         'Flask-Admin>=1.3.0',
@@ -36,13 +38,13 @@ extras_require = {
         'Sphinx>=1.4.2,<1.6',
     ],
     'mysql': [
-        'invenio-db[versioning,mysql]>=1.0.0',
+        f'invenio-db[versioning,mysql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'postgresql': [
-        'invenio-db[versioning,postgresql]>=1.0.0',
+        f'invenio-db[versioning,postgresql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db[versioning]>=1.0.0',
+        f'invenio-db[versioning] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'tests': tests_require,
 }
@@ -67,13 +69,16 @@ install_requires = [
     'Flask-KVSession>=0.6.1',
     'Flask-Login>=0.3.0,<0.5.0',
     'Flask-Mail>=0.9.1',
-    'Flask-Menu>=0.5.0',
-    'Flask-Security>=3.0.0',
+    # To prevent the error: ImportError: cannot import name 'register_menu' from 'flask_menu'
+    # by Flask-Breadcrumbs
+    'Flask-Menu>=0.6.0,<2.0',
+    'Flask-Security>=3.0.0,<5.0',
     'Flask-WTF>=0.13.1',
-    'Flask>=1.0.4',
+    'Flask>=1.1.0,<2.0.0',
     'future>=0.16.0',
     'invenio-i18n>=1.0.0',
     'invenio-celery>=1.1.2',
+    'celery>=5.2.1',
     'maxminddb-geolite2>=2017.404',
     'passlib>=1.7.1',
     'pyjwt>=1.5.0',
@@ -84,6 +89,9 @@ install_requires = [
     'SQLAlchemy-Utils>=0.31.0',
     'ua-parser>=0.7.3',
     'werkzeug>=0.15',
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    f'weko-redis @ file://localhost{modules_dir}/weko-redis#egg=weko_redis',
+    f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
 ]
 
 packages = find_packages()

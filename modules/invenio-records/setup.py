@@ -16,6 +16,8 @@ readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -25,6 +27,7 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
 ]
 
 extras_require = {
@@ -35,13 +38,13 @@ extras_require = {
         'Sphinx>=1.7.2',
     ],
     'mysql': [
-        'invenio-db[mysql,versioning]>=1.0.0',
+        f'invenio-db[mysql,versioning] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'postgresql': [
-        'invenio-db[postgresql,versioning]>=1.0.0',
+        f'invenio-db[postgresql,versioning] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db[versioning]>=1.0.0',
+        f'invenio-db[versioning] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'admin': [
         'Flask-Admin>=1.3.0',

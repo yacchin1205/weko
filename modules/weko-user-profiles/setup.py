@@ -40,22 +40,25 @@ tests_require = [
     'responses',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 extras_require = {
     'admin': [
-        'invenio-admin>=1.0.0b1',
+        # To reduce the number of dependencies, <1.3.0
+        'invenio-admin>=1.0.0b1,<1.3.0',
     ],
     'docs': [
         'Sphinx>=1.5.1',
-        'invenio-mail>=1.0.0b1',
+        f'invenio-mail @ file://localhost{modules_dir}/invenio-mail#egg=invenio_mail',
     ],
     'mysql': [
-        'invenio-db[mysql]>=1.0.0b3',
+        f'invenio-db[mysql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'postgresql': [
-        'invenio-db[postgresql]>=1.0.0b3',
+        f'invenio-db[postgresql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db>=1.0.0b3',
+        f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'tests': tests_require,
 }
@@ -73,12 +76,12 @@ setup_requires = [
 
 install_requires = [
     'Flask-BabelEx>=0.9.3',
-    'Flask-Breadcrumbs>=0.3.0',
+    'Flask-Breadcrumbs>=0.4.0',
     'Flask-Mail>=0.9.1',
     'Flask-Menu>=0.4.0',
     'Flask-WTF>=0.13.1',
     'Flask>=0.11.1',
-    'invenio-accounts>=1.0.0b3',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
     'WTForms>=2.0.1',
 ]
 

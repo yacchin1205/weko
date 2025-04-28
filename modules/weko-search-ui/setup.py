@@ -37,6 +37,7 @@ tests_require = [
     "pytest-invenio",
     "pytest-mock",
     "responses",
+    'invenio-search>=1.0.0a11,<2',
 ]
 
 extras_require = {
@@ -55,6 +56,8 @@ setup_requires = [
     "pytest-runner>=3.0.0",
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     "Flask-BabelEx>=0.9.2",
     "Flask-Assets>=0.12",
@@ -62,10 +65,11 @@ install_requires = [
     "angular-gettext-babel>=0.3",
     # "elasticsearch-dsl<7.0.0,>=6.0.0",
     "invenio-assets>=1.0.0b7",
-    "invenio-db>=1.0.0b9",
-    "invenio-records-rest>=1.0.0b3",
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    f"invenio-records-rest @ file://localhost{modules_dir}/invenio-records-rest#egg=invenio_records_rest",
     # "invenio-search>=1.0.0b4",
     "bagit>=1.7.0",
+    f'weko-gridlayout @ file://localhost{modules_dir}/weko-gridlayout#egg=weko_gridlayout',
 ]
 
 packages = find_packages()

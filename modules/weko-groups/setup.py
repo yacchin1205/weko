@@ -39,20 +39,23 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'invenio-access>=1.0.0b1,<2',
 ]
+
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
 
 extras_require = {
     'docs': [
         'Sphinx>=1.4.2',
     ],
     'mysql': [
-        'invenio-db[mysql]>=1.0.0b1',
+        f'invenio-db[mysql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'postgresql': [
-        'invenio-db[postgresql]>=1.0.0b1',
+        f'invenio-db[postgresql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db>=1.0.0b1',
+        f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'tests': tests_require,
 }
@@ -66,21 +69,25 @@ for name, reqs in extras_require.items():
 setup_requires = [
     'pytest-runner>=3.0.0,<5',
     'Babel>=1.3',
+    'bleach>=3.1.0',
 ]
 
 install_requires = [
     'Flask-BabelEx>=0.9.2',
-    'Flask-Menu>=0.4.0',
-    'Flask-Breadcrumbs>=0.3.0',
+    # To prevent the error: ImportError: cannot import name 'register_menu' from 'flask_menu'
+    # by Flask-Breadcrumbs
+    'Flask-Menu>=0.6.0,<2.0',
+    'Flask-Breadcrumbs>=0.4.0',
     'Flask-Security>=1.7.5',
     'Flask-WTF>=0.13',
     'Flask>=0.11.1',
-    'invenio-accounts>=1.0.0a15',
-    'invenio-admin>=1.0.0b4',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
+    # To reduce the number of dependencies, <1.3.0
+    'invenio-admin>=1.0.0b4,<1.3.0',
     'invenio-assets>=1.0.0b1',
-    'invenio-db>=1.0.0b8',
-    'WTForms>=2.1.0',
-    'WTForms-Alchemy>=0.15.0',
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    'WTForms>=2.1.0,<3.0',
+    'WTForms-Alchemy>=0.15.0,<=0.18.0',
 ]
 
 packages = find_packages()

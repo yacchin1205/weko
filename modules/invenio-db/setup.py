@@ -25,6 +25,8 @@ tests_require = [
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=3.8.0,<5.0.0',
+    'SQLAlchemy-Continuum>=1.3.6',
+    'psycopg2-binary>=2.7.4',
 ]
 
 extras_require = {
@@ -52,9 +54,10 @@ setup_requires = [
 ]
 
 install_requires = [
-    'Flask>=0.11.1',
-    'Flask-Alembic>=2.0.1',
-    'Flask-SQLAlchemy>=2.1',
+    # To prevent error https://github.com/plotly/dash/issues/1943
+    'Flask>=1.1.0,<2.0.0',
+    'Flask-Alembic>=2.0.1,<3.0',
+    'Flask-SQLAlchemy>=2.3.2,<3.0',
     'SQLAlchemy>=1.0',
     'SQLAlchemy-Utils>=0.33.1',
 ]

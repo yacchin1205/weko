@@ -27,6 +27,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3',
     'mock>=3.0.0',
@@ -37,6 +39,7 @@ tests_require = [
     'pytest-invenio',
     'pytest-pycodestyle',
     'responses',
+    f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
 ]
 
 extras_require = {
@@ -61,11 +64,16 @@ install_requires = [
     'feedgen>=0.7.0',
     'lxml>=4.0.0',
     'dojson>=1.3.0',
-    'invenio-access>=1.0.0b1',
+    'invenio-access>=1.0.0b1,<2',
     'invenio-i18n>=1.0.0b4',
-    'invenio-db>=1.0.0b4',
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     'invenio-pidrelations>=1.0.0a3',
-    'invenio-records>=1.0.0b4',
+    f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
+    'jsonpath_ng>=1.5.2',
+    # To reduce the number of dependencies, <1.2.0
+    'invenio_theme>=1.0.0b4,<1.2.0',
+    'invenio-formatter>=1.0.0b3,<1.2.0',
+    f'weko-admin @ file://localhost{modules_dir}/weko-admin#egg=weko_admin',
 ]
 
 packages = find_packages()

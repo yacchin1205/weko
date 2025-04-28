@@ -33,6 +33,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -42,6 +44,12 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'weko-index-tree @ file://localhost{modules_dir}/weko-index-tree#egg=weko_index_tree',
+    f'weko-records @ file://localhost{modules_dir}/weko-records#egg=weko_records',
+    f'invenio-deposit @ file://localhost{modules_dir}/invenio-deposit#egg=invenio_deposit',
+    f'invenio-mail @ file://localhost{modules_dir}/invenio-mail#egg=invenio_mail',
+    f'invenio-oaiserver @ file://localhost{modules_dir}/invenio-oaiserver#egg=invenio_oaiserver',
+    'invenio-search>=1.0.0a11,<2',
 ]
 
 invenio_search_version = '1.2.2'
@@ -57,7 +65,7 @@ extras_require = {
         'Flask-Mail>=0.9.1',
     ],
     'oai': [
-        'invenio-oaiserver>=1.0.3',
+        f'invenio-oaiserver @ file://localhost{modules_dir}/invenio-oaiserver#egg=invenio_oaiserver',
     ],
     # 'elasticsearch2': [
     #     'invenio-search[elasticsearch2]>={}'.format(invenio_search_version),
@@ -94,15 +102,17 @@ install_requires = [
     'Flask>=0.11.1',
     # 'elasticsearch-dsl>=6.0.0,<7.0.0',
     # 'elasticsearch>=6.0.0,<7.0.0',
-    'invenio-access>=1.1.0',
-    'invenio-accounts>=1.1.0',
-    'invenio-files-rest>=1.0.0b1',
-    'invenio-indexer>=1.0.2',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
+    f'invenio-files-rest @ file://localhost{modules_dir}/invenio-files-rest#egg=invenio_files_rest',
+    f'invenio-indexer @ file://localhost{modules_dir}/invenio-indexer#egg=invenio_indexer',
     'invenio-pidstore>=1.0.0',
-    'invenio-records>=1.2.0',
-    'invenio-rest[cors]>=1.0.0',
+    f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
+    'invenio-rest[cors]>=1.0.0,<1.2',
     # 'invenio-search>=1.0.0a9',
+    'flask-marshmallow>=0.14.0',
+    'marshmallow-sqlalchemy>=0.23.1',
     'marshmallow>=2.15.0,<3',
+    f'weko-search-ui @ file://localhost{modules_dir}/weko-search-ui#egg=weko_search_ui',
 ]
 
 packages = find_packages()

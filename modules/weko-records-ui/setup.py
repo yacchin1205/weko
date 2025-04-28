@@ -36,6 +36,8 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    'elasticsearch>=5.0.0',
+    'invenio-search>=1.0.0a11,<2',
 ]
 
 extras_require = {
@@ -54,12 +56,15 @@ setup_requires = [
     'pytest-runner>=3.0.0,<5',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 install_requires = [
     'Flask-BabelEx>=0.9.2',
-    'invenio-previewer>=1.0.0a11',
+    f'invenio-previewer @ file://localhost{modules_dir}/invenio-previewer#egg=invenio_previewer',
     'PyPDF2>=1.26.0',
     'invenio-pidrelations>=1.0.0a3',
-    'invenio-records>=1.0.0b4',
+    f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
+    'fpdf @ git+https://github.com/RCOSDP/pyfpdf.git@fix/nii#egg=fpdf',
 ]
 
 packages = find_packages()

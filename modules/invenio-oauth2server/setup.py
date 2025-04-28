@@ -26,9 +26,12 @@ tests_require = [
     'responses',
 ]
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 extras_require = {
     'admin': [
-        'invenio-admin>=1.0.0'
+        # To reduce the number of dependencies, <1.3.0
+        'invenio-admin>=1.0.0,<1.3.0'
     ],
     'docs': [
         'Sphinx>=1.5.1',
@@ -37,13 +40,13 @@ extras_require = {
         'redis>=2.10.5',
     ],
     'mysql': [
-        'invenio-db[mysql]>=1.0.0',
+        f'invenio-db[mysql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'postgresql': [
-        'invenio-db[postgresql]>=1.0.0',
+        f'invenio-db[postgresql] @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'sqlite': [
-        'invenio-db>=1.0.0',
+        f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     ],
     'tests': tests_require,
 }
@@ -67,12 +70,12 @@ install_requires = [
     'Flask-WTF>=0.13.1',
     'Flask>=0.11.1',
     'future>=0.16.0',
-    'invenio-accounts>=1.0.0',
+    f'invenio-accounts @ file://localhost{modules_dir}/invenio-accounts#egg=invenio_accounts',
     'oauthlib>=1.1.2,!=2.0.0,!=2.0.3,!=2.0.4,!=2.0.5',
     'pyjwt>=1.5.0',
     'six>=1.10.0',
     'SQLAlchemy-Utils[encrypted]>=0.33.0',
-    'WTForms-Alchemy>=0.15.0',
+    'WTForms-Alchemy>=0.15.0,<=0.18.0',
 ]
 
 packages = find_packages()

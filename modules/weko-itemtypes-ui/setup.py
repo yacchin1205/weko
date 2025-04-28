@@ -58,7 +58,10 @@ install_requires = [
     'Flask-BabelEx>=0.9.2',
     'invenio-assets>=1.0.0b7',
     'invenio_i18n>=1.0.0b4',
-    'invenio_theme>=1.0.0b4'
+    'invenio_theme>=1.0.0b4',
+    'flask-marshmallow>=0.14.0',
+    'marshmallow-sqlalchemy>=0.23.1',
+    'marshmallow>=2.15.0,<3',
 ]
 
 packages = find_packages()

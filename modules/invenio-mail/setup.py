@@ -15,6 +15,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -25,6 +27,7 @@ tests_require = [
     'pytest-invenio',
     'pytest-mock==3.1.0',
     'responses',
+    f'weko-index-tree @ file://localhost{modules_dir}/weko-index-tree#egg=weko_index_tree',
 ]
 
 extras_require = {
@@ -50,8 +53,9 @@ setup_requires = [
 install_requires = [
     'Flask>=0.11.1',
     'Flask-Mail>=0.9.1',
-    'invenio-db>=1.0.0b9',
-    'invenio-admin>=1.0.0b4'
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    # To reduce the number of dependencies, <1.3.0
+    'invenio-admin>=1.0.0b4,<1.3.0'
 ]
 
 packages = find_packages()

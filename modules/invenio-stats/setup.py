@@ -15,6 +15,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -24,6 +26,8 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'invenio-oauth2server @ file://localhost{modules_dir}/invenio-oauth2server#egg=invenio_oauth2server',
+    'invenio-access>=1.0.0,<2',
 ]
 
 invenio_search_version = '1.0.0'
@@ -45,7 +49,7 @@ extras_require = {
 }
 
 extras_require['all'] = [
-    'invenio-records-ui>=1.0.1',
+    'invenio-records-ui>=1.0.0a8',
 ]
 
 for reqs in extras_require.values():
@@ -59,12 +63,16 @@ install_requires = [
     'arrow>=0.7.0',
     'counter-robots>=2018.6',
     'Flask>=0.11.1',
-    'invenio-cache>=1.0.0',
-    'invenio-files-rest>=1.0.0a23',
-    'invenio-queues>=1.0.0a1',
+    'invenio-cache>=1.0.0,<1.2',
+    f'invenio-files-rest @ file://localhost{modules_dir}/invenio-files-rest#egg=invenio_files_rest',
+    f'invenio-queues @ file://localhost{modules_dir}/invenio-queues#egg=invenio_queues',
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
     'python-geoip>=1.2',
+    'netaddr>=0.8.0',
+    # PIDVersioning class requires invenio-pidrelations<=1.0.0a4
+    'invenio-pidrelations==1.0.0a4',
+    f'weko-accounts @ file://localhost{modules_dir}/weko-accounts#egg=weko_accounts',
 ]
 
 packages = find_packages()

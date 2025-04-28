@@ -16,6 +16,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
@@ -23,7 +25,7 @@ tests_require = [
     'elasticsearch-dsl>=5.0.0',
     'elasticsearch>=5.0.0',
     'invenio-app>=1.0.0',
-    'invenio-db>=1.0.0b3',
+    f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
     'isort>=4.3.3',
     'pydocstyle>=1.0.0',
     'pytest-cov>=1.8.0',
@@ -48,13 +50,14 @@ setup_requires = [
 ]
 
 install_requires = [
-    'Flask>=0.11.1',
-    'Flask-CeleryExt>=0.3.0',
+    'Flask>=1.1.0,<2.0.0',
+    'Flask-CeleryExt>=0.3.4',
+    'celery>=5.2.1',
     'Flask-IIIF>=0.4.0',
     # FIXME: Invenio-Files-REST should specify Invenio-Access as requirement.
-    'invenio-access>=1.0.0',
-    'invenio-files-rest>=1.0.0b1',
-    'invenio-records-files>=1.0.0a10',
+    'invenio-access>=1.0.0,<2',
+    f'invenio-files-rest @ file://localhost{modules_dir}/invenio-files-rest#egg=invenio_files_rest',
+    'invenio-records-files==1.0.0a10',
     'six>=1.11.0',
     'Wand>=0.4.4',
     'iiif-prezi==0.3.0', # FIXME: probably this needs some work or fork
