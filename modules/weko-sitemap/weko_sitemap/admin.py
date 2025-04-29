@@ -13,7 +13,6 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 from celery.result import AsyncResult
-from celery.task.control import inspect
 from flask import abort, current_app, jsonify, render_template, request, \
     session, url_for
 from flask_admin import BaseView, expose

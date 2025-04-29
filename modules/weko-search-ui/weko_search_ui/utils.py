@@ -45,7 +45,6 @@ import bagit
 import redis
 from redis import sentinel
 from celery.result import AsyncResult
-from celery.task.control import revoke
 from elasticsearch import ElasticsearchException
 from elasticsearch.exceptions import NotFoundError
 from flask import abort, current_app, has_request_context, request
@@ -3645,6 +3644,8 @@ def cancel_export_all():
     Return:     True:   Cancel Successful.
                   No:     Error
     """
+    # TODO
+    from celery.task.control import revoke
     cache_key = current_app.config["WEKO_ADMIN_CACHE_PREFIX"].format(
         name=WEKO_SEARCH_UI_BULK_EXPORT_TASK,
         user_id=current_user.get_id()

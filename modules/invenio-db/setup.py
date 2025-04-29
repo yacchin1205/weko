@@ -56,8 +56,8 @@ setup_requires = [
 install_requires = [
     # To prevent error https://github.com/plotly/dash/issues/1943
     'Flask>=1.1.0,<2.0.0',
-    'Flask-Alembic>=2.0.1,<3.0',
-    'Flask-SQLAlchemy>=2.3.2,<3.0',
+    'Flask-Alembic>=2.0.1',
+    'Flask-SQLAlchemy>=2.3.2',
     'SQLAlchemy>=1.0',
     'SQLAlchemy-Utils>=0.33.1',
 ]

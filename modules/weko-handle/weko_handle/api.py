@@ -23,11 +23,6 @@
 import sys
 import traceback
 
-from b2handle.clientcredentials import PIDClientCredentials
-from b2handle.handleclient import EUDATHandleClient
-from b2handle.handleexceptions import CredentialsFormatError, \
-    GenericHandleError, HandleAuthenticationError, \
-    HandleAlreadyExistsException
 from flask import current_app, jsonify
 
 
@@ -41,6 +36,11 @@ class Handle(object):
 
     def retrieve_handle(self, handle):
         """Retrieve a handle."""
+        # TODO: b2handle cannot be used with Python >= 3.8
+        from b2handle.clientcredentials import PIDClientCredentials
+        from b2handle.handleclient import EUDATHandleClient
+        from b2handle.handleexceptions import CredentialsFormatError
+
         try:
             credential = PIDClientCredentials.load_from_JSON(
                 self.credential_path)
@@ -54,6 +54,13 @@ class Handle(object):
 
     def register_handle(self, location, hdl="", overwrite=False):
         """Register a handle."""
+        # TODO: b2handle cannot be used with Python >= 3.8
+        from b2handle.clientcredentials import PIDClientCredentials
+        from b2handle.handleclient import EUDATHandleClient
+        from b2handle.handleexceptions import CredentialsFormatError, \
+            GenericHandleError, HandleAuthenticationError, \
+            HandleAlreadyExistsException
+
         current_app.logger.debug(
             "location:{0} hdl:{1}".format(location, hdl))
         pid = hdl
@@ -94,4 +101,6 @@ class Handle(object):
 
     def get_prefix(self):
         """Get Handle prefix."""
+         # TODO: b2handle cannot be used with Python >= 3.8
+        from b2handle.clientcredentials import PIDClientCredentials
         return PIDClientCredentials.load_from_JSON(self.credential_path).get_prefix()

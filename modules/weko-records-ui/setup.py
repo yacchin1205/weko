@@ -65,6 +65,8 @@ install_requires = [
     'invenio-pidrelations>=1.0.0a3',
     f'invenio-records @ file://localhost{modules_dir}/invenio-records#egg=invenio_records',
     'fpdf @ git+https://github.com/RCOSDP/pyfpdf.git@fix/nii#egg=fpdf',
+    f'weko-items-autofill @ file://localhost{modules_dir}/weko-items-autofill#egg=weko_items_autofill',
+    f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
 ]
 
 packages = find_packages()

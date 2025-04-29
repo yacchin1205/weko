@@ -30,7 +30,6 @@ from datetime import datetime
 
 import dateutil
 from celery import current_task, shared_task
-from celery.task.control import inspect
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_babelex import gettext as _
@@ -368,6 +367,8 @@ def link_error_handler(request, exc, traceback):
 
 def is_harvest_running(id, task_id):
     """Check harvest running."""
+    # TODO
+    from celery.task.control import inspect
     actives = inspect(timeout=current_app.config.get("CELERY_GET_STATUS_TIMEOUT", 3.0)).active()
     for worker in actives:
         for task in actives[worker]:

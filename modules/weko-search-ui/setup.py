@@ -27,6 +27,8 @@ from setuptools import find_packages, setup
 readme = open("README.rst").read()
 history = open("CHANGES.rst").read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     "coverage>=4.5.3",
     "mock>=3.0.0",
@@ -38,6 +40,7 @@ tests_require = [
     "pytest-mock",
     "responses",
     'invenio-search>=1.0.0a11,<2',
+    f'invenio-oaiharvester @ file://localhost{modules_dir}/invenio-oaiharvester#egg=invenio_oaiharvester',
 ]
 
 extras_require = {
@@ -56,8 +59,6 @@ setup_requires = [
     "pytest-runner>=3.0.0",
 ]
 
-modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
-
 install_requires = [
     "Flask-BabelEx>=0.9.2",
     "Flask-Assets>=0.12",
@@ -70,6 +71,8 @@ install_requires = [
     # "invenio-search>=1.0.0b4",
     "bagit>=1.7.0",
     f'weko-gridlayout @ file://localhost{modules_dir}/weko-gridlayout#egg=weko_gridlayout',
+    f'weko-indextree-journal @ file://localhost{modules_dir}/weko-indextree-journal#egg=weko_indextree_journal',
+    f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
 ]
 
 packages = find_packages()

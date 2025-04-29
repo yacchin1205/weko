@@ -24,7 +24,6 @@ from datetime import datetime, timedelta
 
 from celery import shared_task
 from celery.result import AsyncResult
-from celery.task.control import inspect
 from flask import current_app
 from weko_admin.api import TempDirInfo
 from weko_admin.utils import get_redis_cache
@@ -149,6 +148,8 @@ def delete_exported_task(uri, cache_key, task_key):
 
 def is_import_running():
     """Check import is running."""
+    # TODO
+    from celery.task.control import inspect
     if not check_celery_is_run():
         return "celery_not_run"
 
@@ -168,6 +169,8 @@ def is_import_running():
 
 def check_celery_is_run():
     """Check celery is running, or not."""
+    # TODO
+    from celery.task.control import inspect
     if not inspect(timeout=current_app.config.get("CELERY_GET_STATUS_TIMEOUT", 3.0)).ping():
         return False
     else:

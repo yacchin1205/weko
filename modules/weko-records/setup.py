@@ -40,6 +40,7 @@ tests_require = [
     'pytest-pycodestyle',
     'responses',
     f'invenio-communities @ file://localhost{modules_dir}/invenio-communities#egg=invenio_communities',
+    f'weko-itemtypes-ui @ file://localhost{modules_dir}/weko-itemtypes-ui#egg=weko_itemtypes_ui',
 ]
 
 extras_require = {

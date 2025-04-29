@@ -27,6 +27,7 @@ tests_require = [
     'pytest-invenio',
     'responses',
     f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
+    f'invenio-oaiharvester @ file://localhost{modules_dir}/invenio-oaiharvester#egg=invenio_oaiharvester',
 ]
 
 extras_require = {

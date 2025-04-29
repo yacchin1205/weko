@@ -7,13 +7,14 @@ import ast
 import glob, re
 import redis
 from celery import Celery
-from celery.task.control import inspect
 
 glob._ishidden = lambda x: False
 
 def get_tasks():
     """現在実行中、待機中のタスクの取得
     """
+    # TODO
+    from celery.task.control import inspect
     # Celery
     if os.environ.get('INVENIO_RABBITMQ_VHOST').endswith('/'):
         # Celery 3

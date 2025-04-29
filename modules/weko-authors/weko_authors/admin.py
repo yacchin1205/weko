@@ -24,7 +24,6 @@ from __future__ import absolute_import, print_function
 
 import json
 from celery import group, states
-from celery.task.control import revoke
 from flask import abort, current_app, request, session
 from flask.helpers import url_for
 from flask.json import jsonify
@@ -163,6 +162,8 @@ class ExportView(BaseView):
     @expose('/cancel', methods=['POST'])
     def cancel(self):
         """Cancel export progress."""
+        # TODO
+        from celery.task.control import revoke
         result = {'status': 'fail'}
         try:
             status = get_export_status()

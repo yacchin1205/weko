@@ -31,7 +31,6 @@ import traceback
 
 import redis
 from redis import sentinel
-from celery.task.control import inspect
 from flask import current_app, request, session
 from flask_babelex import gettext as _
 from flask_security import current_user
@@ -2010,6 +2009,8 @@ def check_an_item_is_locked(item_id=None):
 
     :return
     """
+    # TODO
+    from celery.task.control import inspect
     def check(workers):
         for worker in workers:
             for task in workers[worker]:

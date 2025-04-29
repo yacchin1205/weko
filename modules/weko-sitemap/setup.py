@@ -14,6 +14,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -23,6 +25,7 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
 ]
 
 extras_require = {

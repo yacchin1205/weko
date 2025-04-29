@@ -39,7 +39,6 @@ from weko_admin.api import TempDirInfo
 from .models import AdminSettings, StatisticsEmail
 from .utils import StatisticMail, get_user_report_data, package_reports ,elasticsearch_reindex
 from .views import manual_send_site_license_mail 
-from celery.task.control import inspect
 from weko_search_ui.tasks import check_celery_is_run
 from .config import WEKO_ADMIN_SETTINGS_ELASTIC_REINDEX_SETTINGS,\
     WEKO_ADMIN_SETTINGS_ELASTIC_REINDEX_SETTINGS_HAS_ERRORED
@@ -86,6 +85,8 @@ def reindex(self, is_db_to_es ):
 
 def is_reindex_running():
     """Check reindex is running."""
+    # TODO
+    from celery.task.control import inspect
     
     if not check_celery_is_run():
         return False

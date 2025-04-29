@@ -41,6 +41,7 @@ tests_require = [
     'elasticsearch>=5.0.0',
     'invenio-search>=1.0.0a11,<2',
     f'invenio-db @ file://localhost{modules_dir}/invenio-db#egg=invenio_db',
+    'invenio-access>=1.0.0,<2',
 ]
 
 extras_require = {

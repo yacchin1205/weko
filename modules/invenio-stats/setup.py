@@ -28,6 +28,7 @@ tests_require = [
     'responses',
     f'invenio-oauth2server @ file://localhost{modules_dir}/invenio-oauth2server#egg=invenio_oauth2server',
     'invenio-access>=1.0.0,<2',
+    'invenio-marc21>=1.0.0a8',
 ]
 
 invenio_search_version = '1.0.0'

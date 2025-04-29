@@ -27,6 +27,8 @@ from setuptools import find_packages, setup
 readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
+modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
+
 tests_require = [
     'coverage>=4.5.3,<5.0.0',
     'mock>=3.0.0,<4.0.0',
@@ -36,6 +38,8 @@ tests_require = [
     'pytest-pep8',
     'pytest-invenio',
     'responses',
+    f'invenio-oaiharvester @ file://localhost{modules_dir}/invenio-oaiharvester#egg=invenio_oaiharvester',
+    f'weko-workflow @ file://localhost{modules_dir}/weko-workflow#egg=weko_workflow',
 ]
 
 extras_require = {
@@ -53,8 +57,6 @@ setup_requires = [
     'Babel>=1.3',
     'pytest-runner>=3.0.0,<5',
 ]
-
-modules_dir = os.path.split(os.path.split(os.path.abspath(__file__))[0])[0]
 
 install_requires = [
     'Flask-BabelEx>=0.9.2',
