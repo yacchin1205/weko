@@ -18,6 +18,9 @@
 # Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307, USA.
 
+
+set -x
+
 # check environment variables:
 if [ "${INVENIO_WEB_HOST}" = "" ]; then
     echo "[ERROR] Please set environment variable INVENIO_WEB_HOST before runnning this script."
