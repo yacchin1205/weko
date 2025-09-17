@@ -122,6 +122,36 @@ cmd_update_client() {
   dc exec -T web invenio shell -c "from weko_swordserver.api import SwordClient; from weko_swordserver.models import SwordClientModel as M; SwordClient.update(client_id='${client_id}', registration_type_id=M.RegistrationType.DIRECT, mapping_id=${mapping_id}, active=True, duplicate_check=False); print('updated')"
 }
 
+cmd_validate() {
+  local scope="" mapping_id="" item_type_id=""
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -f|--compose-file) COMPOSE_FILE="$2"; shift 2 ;;
+      --mapping-id) mapping_id="$2"; scope="mapping"; shift 2 ;;
+      --item-type-id) item_type_id="$2"; scope="itemtype"; shift 2 ;;
+      --all) scope="all"; shift 1 ;;
+      *) die "unknown option: $1" ;;
+    esac
+  done
+
+  if [[ -z "$scope" ]]; then
+    die "specify one of --mapping-id, --item-type-id, or --all"
+  fi
+
+  if [[ "$scope" == "mapping" ]]; then
+    require "$mapping_id" "--mapping-id is required"
+    local code=$'from weko_records.api import JsonldMapping\nfrom weko_search_ui.mapper import JsonLdMapper\nimport json, sys, os, traceback\nmid = int(os.environ.get("MID"))\nobj = JsonldMapping.get_mapping_by_id(mid)\nif not obj:\n    print(json.dumps({"error": "mapping not found", "mapping_id": mid}, ensure_ascii=False))\n    sys.exit(2)\ntry:\n    errs = JsonLdMapper(obj.item_type_id, obj.mapping).validate()\n    out = {"mapping_id": obj.id, "item_type_id": obj.item_type_id, "name": getattr(obj, "name", None), "valid": errs is None, "errors": errs or []}\n    print(json.dumps(out, ensure_ascii=False, indent=2))\n    sys.exit(0 if errs is None else 1)\nexcept Exception as ex:\n    traceback.print_exc()\n    print(json.dumps({"error": "exception during validation", "message": str(ex)}, ensure_ascii=False))\n    sys.exit(3)\n'
+    dc exec -T -e MID="${mapping_id}" web invenio shell -c "$code"
+  elif [[ "$scope" == "itemtype" ]]; then
+    require "$item_type_id" "--item-type-id is required"
+    local code=$'from weko_records.api import JsonldMapping\nfrom weko_search_ui.mapper import JsonLdMapper\nimport json, sys, os, traceback\nitid = int(os.environ.get("ITID"))\nobjs = JsonldMapping.get_by_itemtype_id(itid)\nresults = []\ninvalid = 0\nfor obj in objs:\n    try:\n        errs = JsonLdMapper(obj.item_type_id, obj.mapping).validate()\n        results.append({"mapping_id": obj.id, "item_type_id": obj.item_type_id, "name": getattr(obj, "name", None), "valid": errs is None, "errors": errs or []})\n        invalid += 0 if errs is None else 1\n    except Exception as ex:\n        traceback.print_exc()\n        results.append({"mapping_id": obj.id, "item_type_id": obj.item_type_id, "name": getattr(obj, "name", None), "valid": False, "errors": ["exception during validation: "+str(ex)]})\n        invalid += 1\nprint(json.dumps(results, ensure_ascii=False, indent=2))\nsys.exit(0 if invalid == 0 else 1)\n'
+    dc exec -T -e ITID="${item_type_id}" web invenio shell -c "$code"
+  else
+    local code=$'from weko_records.api import JsonldMapping\nfrom weko_search_ui.mapper import JsonLdMapper\nimport json, sys, traceback\nobjs = JsonldMapping.get_all()\nresults = []\ninvalid = 0\nfor obj in objs:\n    try:\n        errs = JsonLdMapper(obj.item_type_id, obj.mapping).validate()\n        results.append({"mapping_id": obj.id, "item_type_id": obj.item_type_id, "name": getattr(obj, "name", None), "valid": errs is None, "errors": errs or []})\n        invalid += 0 if errs is None else 1\n    except Exception as ex:\n        traceback.print_exc()\n        results.append({"mapping_id": obj.id, "item_type_id": obj.item_type_id, "name": getattr(obj, "name", None), "valid": False, "errors": ["exception during validation: "+str(ex)]})\n        invalid += 1\nprint(json.dumps(results, ensure_ascii=False, indent=2))\nsys.exit(0 if invalid == 0 else 1)\n'
+    dc exec -T web invenio shell -c "$code"
+  fi
+}
+
 usage() {
   cat <<USAGE
 Usage: $0 <command> [options]
@@ -131,9 +161,15 @@ Commands:
   get-client-id      Print client_id from access token
   create-map         Create minimal mapping (RO-Crate name -> title)
   update-client      Update SWORD client to use a mapping (Direct)
+  validate           Validate JsonLdMapping(s) via docker compose
 
 Options:
   -f, --compose-file <file>   Compose file (default: ${COMPOSE_FILE})
+
+Validate options:
+  --mapping-id <id>           Validate a specific mapping by id
+  --item-type-id <id>         Validate all mappings for an item type
+  --all                       Validate all mappings
 
 See file header for examples.
 USAGE
@@ -147,6 +183,7 @@ main() {
     get-client-id)  cmd_get_client_id "$@" ;;
     create-map)     cmd_create_map "$@" ;;
     update-client)  cmd_update_client "$@" ;;
+    validate)       cmd_validate "$@" ;;
     *) usage; exit 1 ;;
   esac
 }
