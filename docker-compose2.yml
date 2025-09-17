@@ -346,6 +346,13 @@ services:
     volumes:
       - es-data:/usr/share/elasticsearch/data
     environment:
+      # NOTE (trial/development only):
+      # The following settings relax Elasticsearch bootstrap checks to ease
+      # running on developer hosts (e.g., Docker Desktop kernels without
+      # seccomp). Do NOT enable in production; instead configure seccomp and
+      # kernel parameters properly on the host.
+      - "discovery.type=single-node"
+      - "bootstrap.system_call_filter=false"
       - "ES_JAVA_OPTS=-Xms2048m -Xmx2048m"
     ports:
       - "29201:9200"
@@ -362,7 +369,12 @@ services:
 
   nginx:
     restart: "always"
-    build: ./nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.arm64
+      # NOTE: Using the ARM64-specific Dockerfile for Nginx. If you are
+      # building/running on an x86_64 (amd64) host, adjust to the appropriate
+      # Dockerfile (e.g., Dockerfile) or ensure multi-arch support.
     ports:
       - "80:80"
       - "443:443"
@@ -452,4 +464,3 @@ volumes:
   mongo_data:
 #  letsencrypt_etc:
 #  letsencrypt_html:
-
