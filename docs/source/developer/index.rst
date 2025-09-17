@@ -12,6 +12,8 @@ Developer Guide
 
    database.rst
    json.rst
+   install_notes.rst
+   sword_rocrate.rst
 
 
 Indices and tables

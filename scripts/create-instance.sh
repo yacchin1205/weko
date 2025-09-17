@@ -128,7 +128,7 @@ pip install setuptools==57.5.0
 
 if [[ "$@" != *"--devel"* ]]; then
 # sphinxdoc-install-invenio-full-begin
-    pip install -r "$scriptpathname/../packages.txt"
+    pip install -c "$scriptpathname/../scripts/pip-constraints.txt" -r "$scriptpathname/../packages.txt"
     pip install --no-deps -r "$scriptpathname/../packages-invenio.txt"
     pip install --no-deps -r "$scriptpathname/../requirements-weko-modules.txt"
 # sphinxdoc-install-invenio-full-end

@@ -48,6 +48,19 @@ export DEBIAN_FRONTEND=noninteractive
 
 provision_web_common_ubuntu14 () {
 
+    # Workaround: Debian buster is EOL and default mirrors return 404.
+    # Switch to archive.debian.org and relax Valid-Until to allow updates.
+    if [ -f /etc/os-release ] && grep -qi 'Debian GNU/Linux 10' /etc/os-release; then
+        echo "[INFO] Detected Debian buster inside container. Switching APT mirrors to archive.debian.org."
+        $sudo bash -c 'cat > /etc/apt/sources.list <<EOF
+deb http://archive.debian.org/debian buster main contrib non-free
+deb http://archive.debian.org/debian buster-updates main contrib non-free
+deb http://archive.debian.org/debian-security buster/updates main contrib non-free
+EOF'
+        # Disable Valid-Until checks for archived repos
+        $sudo bash -c 'echo Acquire::Check-Valid-Until \"false\"\; > /etc/apt/apt.conf.d/99no-check-valid-until'
+    fi
+
     # sphinxdoc-install-useful-system-tools-ubuntu14-begin
     # update list of available packages:
     $sudo apt-get -y update --allow-releaseinfo-change

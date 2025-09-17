@@ -1,0 +1,9 @@
+# Constraints to keep Python 3.6 build compatible and avoid resolving
+# to unreleased/unsupported dependency combinations during image build.
+
+# rocrate -> galaxy2cwl -> gxformat2 -> schema-salad chain
+# Newer gxformat2 requires schema-salad versions not available on PyPI,
+# pin to known-good set for Py36.
+galaxy2cwl==0.1.4
+gxformat2==0.13.1
+schema-salad==8.3.20221209165047

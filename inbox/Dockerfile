@@ -6,7 +6,12 @@ WORKDIR $APP_HOME
 
 FROM base AS production
 
-RUN apt-get update && apt-get install -y git
+# System deps for building some Python packages (e.g. JPype1) on slim images
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    git \
+    build-essential \
+ && rm -rf /var/lib/apt/lists/*
 RUN git clone --branch nii_main https://github.com/RCOSDP/coar-notify-inbox.git $APP_HOME
 
 RUN pip install --upgrade pip
