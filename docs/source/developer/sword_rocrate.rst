@@ -83,6 +83,26 @@ This repository provides ``scripts/sword_tools.sh`` to streamline inspection and
 
     bash scripts/sword_tools.sh update-client --client-id CLIENT_ID --mapping-id MAPPING_ID
 
+Validate Json‑LD mappings
+~~~~~~~~~~~~~~~~~~~~~~~~~
+Before testing payloads, validate that your JSON‑LD mapping matches the item type. The validator runs inside the web container and reports errors per mapping in JSON.
+
+- Validate all mappings::
+
+    bash scripts/sword_tools.sh validate --all
+
+- Validate mappings for a specific item type (e.g., 30001)::
+
+    bash scripts/sword_tools.sh validate --item-type-id 30001
+
+- Validate one mapping by ID::
+
+    bash scripts/sword_tools.sh validate --mapping-id 51000
+
+Notes:
+- Exit code is 0 when valid, 1 when any invalid, 2 when a mapping was not found, 3 on exception.
+- Parent keys (e.g., ``Title``, ``Resource Type``) are required in addition to child keys (e.g., ``Title.タイトル``). Missing required parents will be reported by the validator.
+
 RO‑Crate payload requirements
 -----------------------------
 For the default item type (ID 30001), ensure the RO‑Crate (``data/ro-crate-metadata.json``) includes:
@@ -119,9 +139,8 @@ Use HTTPS with ``-k`` if self‑signed certs are in use, and send as multipart/f
 
 Troubleshooting
 ---------------
-- 400 with "Mapping is invalid…": mapping validation failed (fix mapping or prune).
+- 400 with "Mapping is invalid…": mapping validation failed. Run ``bash scripts/sword_tools.sh validate --item-type-id <ID>`` (or ``--all``) and fix/prune the mapping keys to match the item type.
 - 400 with "PUBLISH_STATUS is required item.": set ``wk:publishStatus`` in RO‑Crate.
 - 400 with "Both of IndexID and POS_INDEX…": set ``wk:index`` (or positional index path).
 - 415 ContentType/Packaging: ensure headers and multipart ``file=`` part.
 - Elasticsearch restarts: see the "Elasticsearch notes" section above.
-

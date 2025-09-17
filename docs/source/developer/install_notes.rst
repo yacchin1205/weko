@@ -88,6 +88,9 @@ Fix:
 
 Mapping/prerequisites are covered in :doc:`sword_rocrate`.
 
+Tip:
+  Use ``bash scripts/sword_tools.sh validate --all`` (or ``--item-type-id <ID>``) to pre‑validate JSON‑LD mappings against item types before attempting SWORD deposits.
+
 Changelog of Adjustments
 ------------------------
 
